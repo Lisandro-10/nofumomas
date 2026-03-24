@@ -5,6 +5,9 @@ const PUBLIC_PATHS = [
   "/register",
   "/session-displaced",
   "/api/auth",
+  "/checkout",
+  "/api/checkout",
+  "/api/webhooks",
 ];
 
 function isPublic(pathname: string): boolean {
