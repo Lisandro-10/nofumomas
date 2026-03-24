@@ -11,3 +11,7 @@ export type { UserEntity } from "./repositories/users.repository";
 
 export { sessionRepository } from "./repositories/sessions.repository";
 export type { SessionEntity, SessionStatus } from "./repositories/sessions.repository";
+
+// Auth
+export { AuthProvider, useAuth } from "./auth.context";
+export { signIn, signOut, signUp } from "./auth.service";
