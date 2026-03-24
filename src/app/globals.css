@@ -3,21 +3,44 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F7F9FC; /* Breathable Canvas */
+  --foreground: #1E3A5F; /* Authoritative Navy */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    font-family: var(--font-montserrat), sans-serif;
+  }
+
+  body {
+    @apply bg-canvas text-navy antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-navy;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Primary CTA button — pill-shaped, orange */
+  .btn-primary {
+    @apply rounded-pill bg-orange px-8 py-3 text-sm font-bold uppercase tracking-action text-white transition-opacity hover:opacity-90 active:opacity-80;
+  }
+
+  /* Ghost / secondary button */
+  .btn-secondary {
+    @apply rounded-pill border border-gray-300 bg-transparent px-8 py-3 text-sm font-medium uppercase tracking-action text-navy/60 transition-opacity hover:opacity-80;
+  }
+
+  /* Card container */
+  .card {
+    @apply rounded-card bg-white shadow-card;
+  }
+
+  /* Pill input */
+  .input-field {
+    @apply w-full rounded-pill bg-gray-100 px-5 py-3 text-sm text-navy outline-none placeholder:text-navy/40 focus:ring-2 focus:ring-orange/30;
+  }
 }
 
 @layer utilities {
