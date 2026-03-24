@@ -18,6 +18,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email, password);
+      console.log("Login exitoso");
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
