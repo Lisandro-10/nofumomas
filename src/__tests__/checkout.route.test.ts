@@ -327,6 +327,81 @@ describe("POST /api/checkout — MercadoPago", () => {
     expect(res.status).toBe(200);
     expect(body.redirectUrl).toBe("https://sandbox.mp.com/pay");
   });
+
+  it("omits auto_return when back_urls point to localhost", async () => {
+    mockBlueRate(1450);
+    jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
+    const mockPrefCreate = jest.fn().mockResolvedValue({
+      id: "pref_123",
+      init_point: "https://mp.com/pay",
+      sandbox_init_point: "https://sandbox.mp.com/pay",
+    });
+    (Preference as unknown as jest.Mock).mockImplementation(() => ({
+      create: mockPrefCreate,
+    }));
+    (adminDb.collection as jest.Mock).mockReturnValue({
+      doc: jest.fn().mockReturnValue({ update: mockDocUpdate }),
+    });
+    mockDocUpdate.mockResolvedValue(undefined);
+
+    await POST(makeRequest({ email: "user@test.com", paymentProvider: "mercadopago" }));
+
+    const callBody = mockPrefCreate.mock.calls[0][0].body;
+    expect(callBody).not.toHaveProperty("auto_return");
+  });
+
+  it("includes auto_return: 'approved' when MERCADOPAGO_NOTIFICATION_URL is a public URL", async () => {
+    process.env.MERCADOPAGO_NOTIFICATION_URL =
+      "https://my-app.vercel.app/api/webhooks/mercadopago";
+    mockBlueRate(1450);
+    jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
+    const mockPrefCreate = jest.fn().mockResolvedValue({
+      id: "pref_123",
+      init_point: "https://mp.com/pay",
+      sandbox_init_point: "https://sandbox.mp.com/pay",
+    });
+    (Preference as unknown as jest.Mock).mockImplementation(() => ({
+      create: mockPrefCreate,
+    }));
+    (adminDb.collection as jest.Mock).mockReturnValue({
+      doc: jest.fn().mockReturnValue({ update: mockDocUpdate }),
+    });
+    mockDocUpdate.mockResolvedValue(undefined);
+
+    await POST(makeRequest({ email: "user@test.com", paymentProvider: "mercadopago" }));
+
+    const callBody = mockPrefCreate.mock.calls[0][0].body;
+    expect(callBody.auto_return).toBe("approved");
+
+    delete process.env.MERCADOPAGO_NOTIFICATION_URL;
+  });
+
+  it("uses MERCADOPAGO_NOTIFICATION_URL origin for back_urls when set", async () => {
+    process.env.MERCADOPAGO_NOTIFICATION_URL =
+      "https://my-app.vercel.app/api/webhooks/mercadopago";
+    mockBlueRate(1450);
+    jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
+    const mockPrefCreate = jest.fn().mockResolvedValue({
+      id: "pref_123",
+      init_point: "https://mp.com/pay",
+      sandbox_init_point: "https://sandbox.mp.com/pay",
+    });
+    (Preference as unknown as jest.Mock).mockImplementation(() => ({
+      create: mockPrefCreate,
+    }));
+    (adminDb.collection as jest.Mock).mockReturnValue({
+      doc: jest.fn().mockReturnValue({ update: mockDocUpdate }),
+    });
+    mockDocUpdate.mockResolvedValue(undefined);
+
+    await POST(makeRequest({ email: "user@test.com", paymentProvider: "mercadopago" }));
+
+    const callBody = mockPrefCreate.mock.calls[0][0].body;
+    expect(callBody.back_urls.success).toBe("https://my-app.vercel.app/checkout/success");
+    expect(callBody.back_urls.failure).toBe("https://my-app.vercel.app/checkout/cancel");
+
+    delete process.env.MERCADOPAGO_NOTIFICATION_URL;
+  });
 });
 
 describe("POST /api/checkout — error handling", () => {
@@ -344,6 +419,28 @@ describe("POST /api/checkout — error handling", () => {
     }));
 
     const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "stripe" }));
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBeDefined();
+  });
+
+  it("returns 500 when dolarapi.com returns a non-ok response", async () => {
+    process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+
+    const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "mercadopago" }));
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBeDefined();
+  });
+
+  it("returns 500 when dolarapi.com fetch throws a network error", async () => {
+    process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
+    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+
+    const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "mercadopago" }));
 
     expect(res.status).toBe(500);
     const body = await res.json();
