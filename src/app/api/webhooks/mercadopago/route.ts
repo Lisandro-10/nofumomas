@@ -1,6 +1,33 @@
+import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
+
+function verifyMpSignature(
+  req: NextRequest,
+  dataId: string,
+  webhookSecret: string
+): boolean {
+  const xSignature = req.headers.get("x-signature");
+  const xRequestId = req.headers.get("x-request-id");
+
+  if (!xSignature || !xRequestId) return false;
+
+  const parts: Record<string, string> = {};
+  xSignature.split(",").forEach((part) => {
+    const [key, value] = part.split("=");
+    if (key && value) parts[key.trim()] = value.trim();
+  });
+
+  const ts = parts["ts"];
+  const v1 = parts["v1"];
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const hash = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
+
+  return hash === v1;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +41,15 @@ export async function POST(req: NextRequest) {
     const paymentId: string = body.data?.id;
     if (!paymentId) {
       return NextResponse.json({ received: true });
+    }
+
+    // Verify signature if secret is configured
+    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      if (!verifyMpSignature(req, paymentId, webhookSecret)) {
+        console.error("[webhook/mercadopago] firma inválida");
+        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+      }
     }
 
     const mpClient = new MercadoPagoConfig({

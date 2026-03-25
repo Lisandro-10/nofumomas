@@ -12,6 +12,8 @@ export interface Purchase {
   status: PurchaseStatus;
   amount: number;
   currency: string;
+  amountArs?: number;
+  exchangeRate?: number;
   createdAt?: FirebaseFirestore.Timestamp;
   updatedAt?: FirebaseFirestore.Timestamp;
 }

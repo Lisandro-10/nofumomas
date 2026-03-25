@@ -10,6 +10,13 @@ const PRODUCT = {
   amountCents: 12000,
 };
 
+async function fetchBlueRate(): Promise<number> {
+  const res = await fetch("https://dolarapi.com/v1/dolares/blue");
+  if (!res.ok) throw new Error(`dolarapi.com error: ${res.status}`);
+  const data = await res.json();
+  return data.venta as number;
+}
+
 function getOrigin(req: NextRequest): string {
   const host = req.headers.get("host") ?? "localhost:3000";
   const protocol = host.startsWith("localhost") ? "http" : "https";
@@ -76,6 +83,9 @@ export async function POST(req: NextRequest) {
       accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
     });
 
+    const exchangeRate = await fetchBlueRate();
+    const amountArs = Math.round(PRODUCT.amountUsd * exchangeRate);
+
     // Create doc first so we can use its ID as external_reference
     const purchaseId = await purchasesRepository.create({
       email,
@@ -83,8 +93,21 @@ export async function POST(req: NextRequest) {
       paymentId: "pending",
       status: "pending",
       amount: PRODUCT.amountUsd,
-      currency: "USD",
+      currency: "ARS",
+      amountArs,
+      exchangeRate,
     });
+
+    const notificationUrl =
+      process.env.MERCADOPAGO_NOTIFICATION_URL ??
+      `${origin}/api/webhooks/mercadopago`;
+
+    // MP requires a publicly accessible URL for back_urls when auto_return is set.
+    // Derive it from MERCADOPAGO_NOTIFICATION_URL if available (strips the /api/... path),
+    // otherwise fall back to the request origin.
+    const mpAppBase = process.env.MERCADOPAGO_NOTIFICATION_URL
+      ? new URL(process.env.MERCADOPAGO_NOTIFICATION_URL).origin
+      : origin;
 
     const preference = new Preference(mpClient);
     const result = await preference.create({
@@ -93,20 +116,22 @@ export async function POST(req: NextRequest) {
           {
             id: "nofumomas-programa",
             title: PRODUCT.name,
+            description: `USD ${PRODUCT.amountUsd} · Tipo de cambio blue: $${exchangeRate}`,
             quantity: 1,
-            currency_id: "USD",
-            unit_price: PRODUCT.amountUsd,
+            currency_id: "ARS",
+            unit_price: amountArs,
           },
         ],
         payer: { email },
         back_urls: {
-          success: `${origin}/checkout/success`,
-          failure: `${origin}/checkout/cancel`,
-          pending: `${origin}/checkout/success`,
+          success: `${mpAppBase}/checkout/success`,
+          failure: `${mpAppBase}/checkout/cancel`,
+          pending: `${mpAppBase}/checkout/success`,
         },
-        auto_return: "approved",
+        // auto_return requires a public URL — disabled on localhost
+        ...(mpAppBase.includes("localhost") ? {} : { auto_return: "approved" }),
         external_reference: purchaseId,
-        notification_url: `${origin}/api/webhooks/mercadopago`,
+        notification_url: notificationUrl,
       },
     });
 

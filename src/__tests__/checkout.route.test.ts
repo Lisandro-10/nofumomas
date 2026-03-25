@@ -39,10 +39,22 @@ jest.mock("@/lib/firebase/admin", () => ({
   },
 }));
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 import Stripe from "stripe";
 import { Preference } from "mercadopago";
+
+// ── Global fetch mock (dolarapi.com) ───────────────────────────────────────────
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
+
+function mockBlueRate(rate: number) {
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: () => Promise.resolve({ venta: rate }),
+  });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const getStripeInstance = () => (Stripe as unknown as jest.Mock).mock.results[0].value;
 
 function makeRequest(body: object) {
   return new NextRequest("http://localhost:3000/api/checkout", {
@@ -184,10 +196,12 @@ describe("POST /api/checkout — MercadoPago", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
+    // @ts-expect-error NODE_ENV is readonly but needs to be overridden in tests
     process.env.NODE_ENV = "test";
   });
 
   it("creates a purchase document before the MP preference (to use as external_reference)", async () => {
+    mockBlueRate(1450);
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
     (Preference as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue({
@@ -212,7 +226,8 @@ describe("POST /api/checkout — MercadoPago", () => {
     );
   });
 
-  it("creates a MP preference with external_reference set to the purchaseId", async () => {
+  it("creates a MP preference with currency_id ARS and unit_price calculated from blue rate", async () => {
+    mockBlueRate(1450);
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
     const mockPrefCreate = jest.fn().mockResolvedValue({
       id: "pref_123",
@@ -232,6 +247,12 @@ describe("POST /api/checkout — MercadoPago", () => {
     expect(mockPrefCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              currency_id: "ARS",
+              unit_price: 120 * 1450,
+            }),
+          ]),
           external_reference: "purchase-id-mp",
           payer: { email: "user@test.com" },
         }),
@@ -239,7 +260,34 @@ describe("POST /api/checkout — MercadoPago", () => {
     );
   });
 
+  it("stores amountArs and exchangeRate in the purchase document", async () => {
+    mockBlueRate(1450);
+    jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
+    (Preference as unknown as jest.Mock).mockImplementation(() => ({
+      create: jest.fn().mockResolvedValue({
+        id: "pref_123",
+        init_point: "https://mp.com/pay",
+        sandbox_init_point: "https://sandbox.mp.com/pay",
+      }),
+    }));
+    (adminDb.collection as jest.Mock).mockReturnValue({
+      doc: jest.fn().mockReturnValue({ update: mockDocUpdate }),
+    });
+    mockDocUpdate.mockResolvedValue(undefined);
+
+    await POST(makeRequest({ email: "user@test.com", paymentProvider: "mercadopago" }));
+
+    expect(purchasesRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amountArs: 120 * 1450,
+        exchangeRate: 1450,
+        currency: "ARS",
+      })
+    );
+  });
+
   it("patches the purchase doc with the real preference ID", async () => {
+    mockBlueRate(1450);
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
     (Preference as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue({
@@ -259,6 +307,7 @@ describe("POST /api/checkout — MercadoPago", () => {
   });
 
   it("returns sandbox_init_point as redirectUrl in non-production", async () => {
+    mockBlueRate(1450);
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
     (Preference as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue({

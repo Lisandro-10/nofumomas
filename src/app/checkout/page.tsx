@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import CheckoutForm from "./_components/CheckoutForm";
 
 export const metadata: Metadata = {
@@ -28,11 +29,12 @@ export default function CheckoutPage() {
           <div className="lg:col-span-5 order-1">
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-6 md:p-8">
               {/* Hero image */}
-              <div className="w-full aspect-video rounded-2xl overflow-hidden mb-6 bg-slate-100">
-                <img
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-6 bg-slate-100">
+                <Image
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYOkGRoHgllgbDDeuaxvJqlDSCM3GnolxNm9_ku31biQS9tYf5EgVYiPu01AqvEAEMPUJt9HVKl2HG_SJvv873fCt7P1KlBGnKN4uBhOkUDAzFBwHyBcaqBEYuugI6LOlnf4PUEFGeEM1p7TbH9lcKTZt7-6-B6xdBrHCy7uyDAvh37xJ_fJJogvh8PnF70Hb1ywFAiLd_lqkn0meExsHZ24sVfK6XC-8lHTfUvTJTeI07vtE7ErV07dJuKRGsA3SfBTU7a-sq0rA"
                   alt="Persona respirando aire fresco en la naturaleza"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               </div>
 
