@@ -2,6 +2,8 @@ import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
+import { sendActivationEmail } from "@/lib/email/brevo.service";
+import { signActivationToken } from "@/lib/email/activation-token";
 
 function verifyMpSignature(
   req: NextRequest,
@@ -68,6 +70,13 @@ export async function POST(req: NextRequest) {
     const mpStatus = paymentData.status;
     if (mpStatus === "approved") {
       await purchasesRepository.updateStatus(purchaseId, "paid");
+
+      const purchase = await purchasesRepository.findById(purchaseId);
+      if (purchase?.email) {
+        const token = await signActivationToken(purchaseId, purchase.email);
+        const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/activate?token=${token}`;
+        await sendActivationEmail({ to: purchase.email, activationUrl });
+      }
     } else if (mpStatus === "rejected" || mpStatus === "cancelled") {
       await purchasesRepository.updateStatus(purchaseId, "failed");
     }

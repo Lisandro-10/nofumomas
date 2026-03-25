@@ -2,7 +2,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 export type PaymentProvider = "stripe" | "mercadopago";
-export type PurchaseStatus = "pending" | "paid" | "failed" | "cancelled";
+export type PurchaseStatus = "pending" | "paid" | "failed" | "cancelled" | "activated";
 
 export interface Purchase {
   id?: string;
@@ -14,6 +14,7 @@ export interface Purchase {
   currency: string;
   amountArs?: number;
   exchangeRate?: number;
+  activatedAt?: FirebaseFirestore.Timestamp;
   createdAt?: FirebaseFirestore.Timestamp;
   updatedAt?: FirebaseFirestore.Timestamp;
 }
@@ -46,6 +47,20 @@ export const purchasesRepository = {
     if (snap.empty) return null;
     const doc = snap.docs[0];
     return { id: doc.id, ...doc.data() } as Purchase;
+  },
+
+  async findById(id: string): Promise<Purchase | null> {
+    const doc = await adminDb.collection(COL).doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Purchase;
+  },
+
+  async activate(id: string): Promise<void> {
+    await adminDb.collection(COL).doc(id).update({
+      status: "activated" as PurchaseStatus,
+      activatedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
   },
 
   async findByExternalRef(externalRef: string): Promise<Purchase | null> {

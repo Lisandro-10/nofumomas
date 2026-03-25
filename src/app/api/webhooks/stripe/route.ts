@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
+import { sendActivationEmail } from "@/lib/email/brevo.service";
+import { signActivationToken } from "@/lib/email/activation-token";
 
 export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -25,6 +27,13 @@ export async function POST(req: NextRequest) {
 
     if (purchaseId) {
       await purchasesRepository.updateStatus(purchaseId, "paid");
+
+      const purchase = await purchasesRepository.findById(purchaseId);
+      if (purchase?.email) {
+        const token = await signActivationToken(purchaseId, purchase.email);
+        const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/activate?token=${token}`;
+        await sendActivationEmail({ to: purchase.email, activationUrl });
+      }
     }
   }
 

@@ -1,0 +1,429 @@
+author: ""
+brandUpdateTime: ""
+campaignType: template
+fields: {}
+fieldsHistory: []
+firstLoadSocialIcons: false
+fonts:
+  - font-family: Montserrat
+    font-style: normal
+    font-weight: "400,600,700"
+    href: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap'
+id: 55b2d080-751d-4d3f-823b-df31d719658c
+name: ""
+subject: 'Activá tu cuenta — No Fumo Más'
+ui:
+  showDeleteOption: false
+user-hash: 6cf2d1830d3b0aa565accc9a616cbe88
+version: 3.0.1
+body:
+  id: 6580ceb4-df25-4113-b6f3-56809f374146
+  type: body
+  layout:
+    320px:
+      width: 100%
+    default:
+      align: left
+      background-color: '#F7F9FC'
+      direction: ltr
+      wrapper-width: 100%
+  content:
+    - content-type: wrapper
+      id: f24d8e18-556c-4d6b-aa2d-83227a18de48
+      stylable: false
+      title: Wrapper
+      type: rows
+      layout:
+        320px:
+          width: 100%
+        default:
+          align: left
+          background-color: '#F7F9FC'
+          valign: top
+      content:
+
+        # ── Ver en el navegador ────────────────────────────────────────────────
+        - align: top
+          dist: '12'
+          gutter: 0px
+          id: e3f0204d-4206-49ba-843e-d622d58c49f4
+          moduleName: viewInBrowser
+          stylable: false
+          title: ViewInBrowser
+          type: grid-row
+          layout:
+            320px:
+              display: rows
+              width: 100%
+            default:
+              align: center
+              background-color: transparent
+              display: none
+              full-width: true
+              padding-bottom: 5px
+              padding-top: 5px
+              valign: top
+              width: 100%
+          content:
+            - id: 2e9695aa-e5b5-4b31-9a31-c202b0c7ba22
+              isEmpty: false
+              label: 'Drop content here'
+              stylable: false
+              title: 'column 1'
+              type: grid-column
+              layout:
+                320px: []
+                default:
+                  padding-left: 0px
+                  padding-right: 0px
+                  valign: top
+              content:
+                - id: d4d497e2-822b-48a0-a032-16c43016f999
+                  stylable: false
+                  title: Webversion
+                  type: text
+                  layout:
+                    320px:
+                      padding-left: 10px
+                      padding-right: 10px
+                      width: 100%
+                    default:
+                      align: center
+                      line-height: 16px
+                      padding-left: 30px
+                      padding-right: 30px
+                      text-align: center
+                      width: 100%
+                  content: "<p><a href=\"{{ mirror }}\"><span style=\"font-family:Montserrat,arial,sans-serif;color:#858588;font-size:12px;text-decoration:underline;\">Ver en el navegador</span></a></p>"
+
+        # ── HEADER ────────────────────────────────────────────────────────────
+        - align: top
+          dist: '12'
+          gutter: 0px
+          id: a1000001-0000-0000-0000-000000000001
+          moduleName: header
+          stylable: false
+          title: Header
+          type: grid-row
+          layout:
+            320px:
+              display: rows
+              padding-left: 0px
+              padding-right: 0px
+              width: 100%
+            default:
+              align: center
+              background-color: '#1E3A5F'
+              full-width: true
+              padding-bottom: 28px
+              padding-top: 28px
+              valign: middle
+              width: 100%
+          content:
+            - id: a1000001-0000-0000-0000-000000000002
+              isEmpty: false
+              label: 'Drop content here'
+              stylable: false
+              title: HeaderColumn
+              type: grid-column
+              layout:
+                320px: []
+                default:
+                  padding-left: 32px
+                  padding-right: 32px
+                  valign: middle
+              content:
+                - id: a1000001-0000-0000-0000-000000000003
+                  stylable: false
+                  title: BrandName
+                  type: text
+                  layout:
+                    320px:
+                      width: 100%
+                    default:
+                      align: center
+                      text-align: center
+                      width: 100%
+                  content: "<p style=\"font-family:Montserrat,arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;margin:0;\">🚭 No Fumo Más</p>"
+
+        # ── CONTENIDO PRINCIPAL ───────────────────────────────────────────────
+        - align: top
+          dist: '12'
+          gutter: 0px
+          id: b2000001-0000-0000-0000-000000000001
+          moduleName: mainContent
+          stylable: false
+          title: Content
+          type: grid-row
+          layout:
+            320px:
+              display: rows
+              padding-left: 16px
+              padding-right: 16px
+              width: 100%
+            default:
+              align: center
+              background-color: '#ffffff'
+              full-width: true
+              padding-bottom: 0px
+              padding-left: 0px
+              padding-right: 0px
+              padding-top: 0px
+              valign: top
+              width: 100%
+          content:
+            - id: b2000001-0000-0000-0000-000000000002
+              isEmpty: false
+              label: 'Drop content here'
+              stylable: false
+              title: ContentColumn
+              type: grid-column
+              layout:
+                320px: []
+                default:
+                  padding-bottom: 0px
+                  padding-left: 48px
+                  padding-right: 48px
+                  padding-top: 40px
+                  valign: top
+              content:
+                - id: b2000001-0000-0000-0000-000000000003
+                  stylable: false
+                  title: Headline
+                  type: text
+                  layout:
+                    320px:
+                      width: 100%
+                    default:
+                      align: left
+                      padding-bottom: 24px
+                      text-align: left
+                      width: 100%
+                  content: "<p style=\"font-family:Montserrat,arial,sans-serif;font-size:26px;font-weight:700;color:#1E3A5F;line-height:1.3;margin:0 0 10px 0;\">¡Tu compra fue confirmada!</p><p style=\"font-family:Montserrat,arial,sans-serif;font-size:13px;font-weight:700;color:#FF7A18;letter-spacing:0.08em;text-transform:uppercase;margin:0;\">Paso final: activá tu cuenta</p>"
+                - id: b2000001-0000-0000-0000-000000000005
+                  stylable: false
+                  title: Body
+                  type: text
+                  layout:
+                    320px:
+                      width: 100%
+                    default:
+                      align: left
+                      padding-bottom: 0px
+                      text-align: left
+                      width: 100%
+                  content: "<p style=\"font-family:Montserrat,arial,sans-serif;font-size:16px;color:#3B4F65;line-height:1.7;margin:0 0 14px 0;\">Ya tenés acceso al programa <strong>No Fumo Más</strong>. Hacé click en el botón de abajo para activar tu cuenta y comenzar tu camino libre del cigarrillo.</p><p style=\"font-family:Montserrat,arial,sans-serif;font-size:16px;color:#3B4F65;line-height:1.7;margin:0;\">Este link es válido por <strong>48 horas</strong> a partir de la recepción de este email.</p>"
+
+        # ── BOTÓN CTA ─────────────────────────────────────────────────────────
+        - align: top
+          dist: '12'
+          gutter: 0px
+          id: c3000001-0000-0000-0000-000000000001
+          moduleName: cta
+          stylable: false
+          title: CTA
+          type: grid-row
+          layout:
+            320px:
+              display: rows
+              width: 100%
+            default:
+              align: center
+              background-color: '#ffffff'
+              full-width: true
+              padding-bottom: 0px
+              padding-top: 0px
+              valign: top
+              width: 100%
+          content:
+            - id: c3000001-0000-0000-0000-000000000002
+              isEmpty: false
+              label: 'Drop content here'
+              stylable: false
+              title: CTAColumn
+              type: grid-column
+              layout:
+                320px: []
+                default:
+                  padding-bottom: 16px
+                  padding-left: 48px
+                  padding-right: 48px
+                  padding-top: 32px
+                  valign: top
+              content:
+                - id: c3000001-0000-0000-0000-000000000003
+                  stylable: false
+                  title: ActivateButton
+                  type: button
+                  layout:
+                    320px:
+                      padding-left: 0px
+                      padding-right: 0px
+                      width: 100%
+                    default:
+                      align: center
+                      padding-bottom: 0px
+                      padding-top: 0px
+                      width: 100%
+                  content:
+                    label: 'ACTIVAR MI CUENTA'
+                    href: '{{ params.activationUrl }}'
+
+        # ── FALLBACK LINK ─────────────────────────────────────────────────────
+        - align: top
+          dist: '12'
+          gutter: 0px
+          id: d4000001-0000-0000-0000-000000000001
+          moduleName: fallbackNote
+          stylable: false
+          title: FallbackNote
+          type: grid-row
+          layout:
+            320px:
+              display: rows
+              width: 100%
+            default:
+              align: center
+              background-color: '#ffffff'
+              full-width: true
+              padding-bottom: 0px
+              padding-top: 0px
+              valign: top
+              width: 100%
+          content:
+            - id: d4000001-0000-0000-0000-000000000002
+              isEmpty: false
+              label: 'Drop content here'
+              stylable: false
+              title: FallbackColumn
+              type: grid-column
+              layout:
+                320px: []
+                default:
+                  padding-bottom: 40px
+                  padding-left: 48px
+                  padding-right: 48px
+                  padding-top: 16px
+                  valign: top
+              content:
+                - id: d4000001-0000-0000-0000-000000000003
+                  stylable: false
+                  title: FallbackText
+                  type: text
+                  layout:
+                    320px:
+                      width: 100%
+                    default:
+                      align: center
+                      text-align: center
+                      width: 100%
+                  content: "<p style=\"font-family:Montserrat,arial,sans-serif;font-size:12px;color:#858588;line-height:1.5;margin:0 0 6px 0;\">¿El botón no funciona? Copiá y pegá este link en tu navegador:</p><p style=\"font-family:Montserrat,arial,sans-serif;font-size:11px;color:#FF7A18;word-break:break-all;margin:0;\">{{ params.activationUrl }}</p>"
+
+        # ── FOOTER ────────────────────────────────────────────────────────────
+        - align: top
+          dist: '12'
+          gutter: 0px
+          id: e5000001-0000-0000-0000-000000000001
+          moduleName: footer
+          stylable: false
+          title: Footer
+          type: grid-row
+          layout:
+            320px:
+              display: rows
+              width: 100%
+            default:
+              align: center
+              background-color: '#1E3A5F'
+              full-width: true
+              padding-bottom: 28px
+              padding-top: 28px
+              valign: top
+              width: 100%
+          content:
+            - id: e5000001-0000-0000-0000-000000000002
+              isEmpty: false
+              label: 'Drop content here'
+              stylable: false
+              title: FooterColumn
+              type: grid-column
+              layout:
+                320px: []
+                default:
+                  padding-left: 32px
+                  padding-right: 32px
+                  valign: top
+              content:
+                - id: e5000001-0000-0000-0000-000000000003
+                  stylable: false
+                  title: FooterText
+                  type: text
+                  layout:
+                    320px:
+                      width: 100%
+                    default:
+                      align: center
+                      text-align: center
+                      width: 100%
+                  content: "<p style=\"font-family:Montserrat,arial,sans-serif;font-size:13px;color:#8F9DAF;margin:0 0 8px 0;\">© 2025 No Fumo Más — Todos los derechos reservados</p><p style=\"font-family:Montserrat,arial,sans-serif;font-size:12px;margin:0;\"><a href=\"{{ unsubscribe }}\" style=\"color:#78899F;text-decoration:underline;\">Cancelar suscripción</a></p>"
+
+media:
+  320px:
+    max-width: 600
+    min-width: 0
+
+styles:
+  default:
+    properties:
+      color: '#3B4F65'
+      font-family: 'Montserrat,arial,sans-serif'
+      font-size: 16px
+      line-height: '1.6'
+    title: Paragraph
+  default-button:
+    properties:
+      background-color: '#FF7A18'
+      border-radius: 9999px
+      border-width: 0px
+      color: '#ffffff'
+      font-family: 'Montserrat,arial,sans-serif'
+      font-size: 15px
+      font-weight: '700'
+      letter-spacing: 0.08em
+      remove-vml-button: optional
+      text-transform: uppercase
+      width: 70%
+    title: Button
+  default-heading1:
+    properties:
+      color: '#1E3A5F'
+      font-family: 'Montserrat,arial,sans-serif'
+      font-size: 36px
+      font-weight: '700'
+    title: 'Heading 1'
+  default-heading2:
+    properties:
+      color: '#1E3A5F'
+      font-family: 'Montserrat,arial,sans-serif'
+      font-size: 28px
+      font-weight: '700'
+    title: 'Heading 2'
+  default-heading3:
+    properties:
+      color: '#1E3A5F'
+      font-family: 'Montserrat,arial,sans-serif'
+      font-size: 22px
+      font-weight: '600'
+    title: 'Heading 3'
+  default-heading4:
+    properties:
+      color: '#1E3A5F'
+      font-family: 'Montserrat,arial,sans-serif'
+      font-size: 18px
+      font-weight: '600'
+    title: 'Heading 4'
+  default-link:
+    properties:
+      color: '#FF7A18'
+      text-decoration: underline
+    title: Link
