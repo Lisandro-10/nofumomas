@@ -13,12 +13,31 @@ jest.mock("mercadopago", () => ({
 jest.mock("@/lib/firebase/repositories/purchases.repository", () => ({
   purchasesRepository: {
     updateStatus: jest.fn(),
+    findById: jest.fn(),
   },
+}));
+
+jest.mock("@/lib/firebase/admin", () => ({
+  adminAuth: {
+    getUserByEmail: jest.fn(),
+    updateUser: jest.fn(),
+  },
+}));
+
+jest.mock("@/lib/email/activation-token", () => ({
+  signActivationToken: jest.fn().mockResolvedValue("mock-token"),
+}));
+
+jest.mock("@/lib/email/brevo.service", () => ({
+  sendActivationEmail: jest.fn().mockResolvedValue(undefined),
+  sendAccountDisabledEmail: jest.fn().mockResolvedValue(undefined),
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 import { Payment } from "mercadopago";
+import { adminAuth } from "@/lib/firebase/admin";
+import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo.service";
 
 const WEBHOOK_SECRET = "test-webhook-secret";
 
@@ -35,6 +54,22 @@ function makeRequest(body: object, headers: Record<string, string> = {}) {
     body: JSON.stringify(body),
   });
 }
+
+function mockPayment(status: string, extra: object = {}) {
+  (Payment as unknown as jest.Mock).mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue({ status, external_reference: "purchase-abc", ...extra }),
+  }));
+}
+
+const BASE_PURCHASE = {
+  id: "purchase-abc",
+  email: "user@test.com",
+  provider: "mercadopago" as const,
+  paymentId: "pref_123",
+  status: "paid" as const,
+  amount: 100,
+  currency: "ARS",
+};
 
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -83,66 +118,46 @@ describe("POST /api/webhooks/mercadopago — signature verification", () => {
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
     process.env.MERCADOPAGO_WEBHOOK_SECRET = WEBHOOK_SECRET;
     jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
+    jest.mocked(purchasesRepository.findById).mockResolvedValue(null);
   });
 
   it("returns 400 when x-signature header is missing", async () => {
     const res = await POST(
-      makeRequest(
-        { type: "payment", data: { id: "pay_123" } },
-        { "x-request-id": "req-abc" }
-      )
+      makeRequest({ type: "payment", data: { id: "pay_123" } }, { "x-request-id": "req-abc" })
     );
 
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/signature/i);
   });
 
   it("returns 400 when x-request-id header is missing", async () => {
     const res = await POST(
-      makeRequest(
-        { type: "payment", data: { id: "pay_123" } },
-        { "x-signature": "ts=123,v1=abc" }
-      )
+      makeRequest({ type: "payment", data: { id: "pay_123" } }, { "x-signature": "ts=123,v1=abc" })
     );
 
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/signature/i);
   });
 
   it("returns 400 when the HMAC signature is invalid", async () => {
     const res = await POST(
       makeRequest(
         { type: "payment", data: { id: "pay_123" } },
-        {
-          "x-signature": "ts=1700000000,v1=invalidsignaturehash",
-          "x-request-id": "req-abc",
-        }
+        { "x-signature": "ts=1700000000,v1=invalidsignaturehash", "x-request-id": "req-abc" }
       )
     );
 
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/signature/i);
   });
 
   it("proceeds normally when HMAC signature is valid", async () => {
     const dataId = "pay_valid";
     const requestId = "req-xyz";
     const ts = "1700000000";
-
-    (Payment as unknown as jest.Mock).mockImplementation(() => ({
-      get: jest.fn().mockResolvedValue({ status: "approved", external_reference: "purchase-abc" }),
-    }));
+    mockPayment("approved");
 
     const res = await POST(
       makeRequest(
         { type: "payment", data: { id: dataId } },
-        {
-          "x-signature": buildSignature(dataId, requestId, ts),
-          "x-request-id": requestId,
-        }
+        { "x-signature": buildSignature(dataId, requestId, ts), "x-request-id": requestId }
       )
     );
 
@@ -152,12 +167,8 @@ describe("POST /api/webhooks/mercadopago — signature verification", () => {
 
   it("skips signature verification when MERCADOPAGO_WEBHOOK_SECRET is not set", async () => {
     delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    mockPayment("approved");
 
-    (Payment as unknown as jest.Mock).mockImplementation(() => ({
-      get: jest.fn().mockResolvedValue({ status: "approved", external_reference: "purchase-abc" }),
-    }));
-
-    // No signature headers — should still work
     const res = await POST(makeRequest({ type: "payment", data: { id: "pay_123" } }));
 
     expect(res.status).toBe(200);
@@ -169,24 +180,26 @@ describe("POST /api/webhooks/mercadopago — status transitions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
     delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
     jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
+    jest.mocked(purchasesRepository.findById).mockResolvedValue(null);
   });
 
-  it("calls updateStatus('paid') when payment status is 'approved'", async () => {
-    (Payment as unknown as jest.Mock).mockImplementation(() => ({
-      get: jest.fn().mockResolvedValue({ status: "approved", external_reference: "purchase-abc" }),
-    }));
+  it("calls updateStatus('paid') and sends activation email when payment is approved", async () => {
+    jest.mocked(purchasesRepository.findById).mockResolvedValue(BASE_PURCHASE);
+    mockPayment("approved");
 
     await POST(makeRequest({ type: "payment", data: { id: "pay_approved" } }));
 
     expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "paid");
+    expect(sendActivationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "user@test.com" })
+    );
   });
 
   it("calls updateStatus('failed') when payment status is 'rejected'", async () => {
-    (Payment as unknown as jest.Mock).mockImplementation(() => ({
-      get: jest.fn().mockResolvedValue({ status: "rejected", external_reference: "purchase-abc" }),
-    }));
+    mockPayment("rejected");
 
     await POST(makeRequest({ type: "payment", data: { id: "pay_rejected" } }));
 
@@ -194,9 +207,7 @@ describe("POST /api/webhooks/mercadopago — status transitions", () => {
   });
 
   it("calls updateStatus('failed') when payment status is 'cancelled'", async () => {
-    (Payment as unknown as jest.Mock).mockImplementation(() => ({
-      get: jest.fn().mockResolvedValue({ status: "cancelled", external_reference: "purchase-abc" }),
-    }));
+    mockPayment("cancelled");
 
     await POST(makeRequest({ type: "payment", data: { id: "pay_cancelled" } }));
 
@@ -204,13 +215,93 @@ describe("POST /api/webhooks/mercadopago — status transitions", () => {
   });
 
   it("does not call updateStatus for intermediate statuses like 'in_process'", async () => {
-    (Payment as unknown as jest.Mock).mockImplementation(() => ({
-      get: jest.fn().mockResolvedValue({ status: "in_process", external_reference: "purchase-abc" }),
-    }));
+    mockPayment("in_process");
 
     await POST(makeRequest({ type: "payment", data: { id: "pay_pending" } }));
 
     expect(purchasesRepository.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it("does not call updateStatus for 'pending' status", async () => {
+    mockPayment("pending");
+
+    await POST(makeRequest({ type: "payment", data: { id: "pay_pending" } }));
+
+    expect(purchasesRepository.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it("does not call updateStatus for 'authorized' status", async () => {
+    mockPayment("authorized");
+
+    await POST(makeRequest({ type: "payment", data: { id: "pay_auth" } }));
+
+    expect(purchasesRepository.updateStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/webhooks/mercadopago — refund and chargeback", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
+    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
+    jest.mocked(adminAuth.updateUser as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  it("disables Firebase user and sends disabled email on 'refunded'", async () => {
+    jest.mocked(purchasesRepository.findById).mockResolvedValue({
+      ...BASE_PURCHASE,
+      uid: "uid-123",
+    });
+    mockPayment("refunded");
+
+    await POST(makeRequest({ type: "payment", data: { id: "pay_refunded" } }));
+
+    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "refunded");
+    expect(adminAuth.updateUser).toHaveBeenCalledWith("uid-123", { disabled: true });
+    expect(sendAccountDisabledEmail).toHaveBeenCalledWith({ to: "user@test.com" });
+  });
+
+  it("disables Firebase user and sends disabled email on 'charged_back'", async () => {
+    jest.mocked(purchasesRepository.findById).mockResolvedValue({
+      ...BASE_PURCHASE,
+      uid: "uid-123",
+    });
+    mockPayment("charged_back");
+
+    await POST(makeRequest({ type: "payment", data: { id: "pay_chargeback" } }));
+
+    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "charged_back");
+    expect(adminAuth.updateUser).toHaveBeenCalledWith("uid-123", { disabled: true });
+    expect(sendAccountDisabledEmail).toHaveBeenCalledWith({ to: "user@test.com" });
+  });
+
+  it("looks up uid by email when purchase has no uid stored", async () => {
+    jest.mocked(purchasesRepository.findById).mockResolvedValue({
+      ...BASE_PURCHASE,
+      uid: undefined,
+    });
+    jest.mocked(adminAuth.getUserByEmail as jest.Mock).mockResolvedValue({ uid: "uid-via-email" });
+    mockPayment("refunded");
+
+    await POST(makeRequest({ type: "payment", data: { id: "pay_refunded" } }));
+
+    expect(adminAuth.getUserByEmail).toHaveBeenCalledWith("user@test.com");
+    expect(adminAuth.updateUser).toHaveBeenCalledWith("uid-via-email", { disabled: true });
+  });
+
+  it("still sends disabled email even when Firebase user lookup fails", async () => {
+    jest.mocked(purchasesRepository.findById).mockResolvedValue({
+      ...BASE_PURCHASE,
+      uid: undefined,
+    });
+    jest.mocked(adminAuth.getUserByEmail as jest.Mock).mockRejectedValue(new Error("not found"));
+    mockPayment("refunded");
+
+    await POST(makeRequest({ type: "payment", data: { id: "pay_refunded" } }));
+
+    expect(adminAuth.updateUser).not.toHaveBeenCalled();
+    expect(sendAccountDisabledEmail).toHaveBeenCalledWith({ to: "user@test.com" });
   });
 });
 

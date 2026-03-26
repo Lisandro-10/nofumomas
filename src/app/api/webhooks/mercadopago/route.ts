@@ -2,8 +2,9 @@ import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
-import { sendActivationEmail } from "@/lib/email/brevo.service";
+import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo.service";
 import { signActivationToken } from "@/lib/email/activation-token";
+import { adminAuth } from "@/lib/firebase/admin";
 
 function verifyMpSignature(
   req: NextRequest,
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     const mpStatus = paymentData.status;
+
     if (mpStatus === "approved") {
       await purchasesRepository.updateStatus(purchaseId, "paid");
 
@@ -79,7 +81,32 @@ export async function POST(req: NextRequest) {
       }
     } else if (mpStatus === "rejected" || mpStatus === "cancelled") {
       await purchasesRepository.updateStatus(purchaseId, "failed");
+    } else if (mpStatus === "refunded" || mpStatus === "charged_back") {
+      const newStatus = mpStatus === "refunded" ? "refunded" : "charged_back";
+      await purchasesRepository.updateStatus(purchaseId, newStatus);
+
+      const purchase = await purchasesRepository.findById(purchaseId);
+      if (purchase?.email) {
+        // Obtener UID: primero del purchase (si ya fue activado), luego por email
+        let uid = purchase.uid;
+        if (!uid) {
+          try {
+            const user = await adminAuth.getUserByEmail(purchase.email);
+            uid = user.uid;
+          } catch {
+            console.error("[webhook/mercadopago] usuario Firebase no encontrado para:", purchase.email);
+          }
+        }
+
+        if (uid) {
+          await adminAuth.updateUser(uid, { disabled: true });
+        }
+
+        await sendAccountDisabledEmail({ to: purchase.email });
+      }
     }
+    // "pending" | "in_process" | "authorized": el pago aún no se resolvió,
+    // se procesará cuando llegue el webhook definitivo (approved / rejected).
 
     return NextResponse.json({ received: true });
   } catch (err) {

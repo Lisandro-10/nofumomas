@@ -32,3 +32,32 @@ export async function sendActivationEmail({
   });
   console.log("[brevo] email enviado OK");
 }
+
+export async function sendPasswordResetEmail({
+  to,
+  resetUrl,
+}: {
+  to: string;
+  resetUrl: string;
+}): Promise<void> {
+  const templateId = Number(process.env.BREVO_RESET_TEMPLATE_ID);
+  if (!templateId) throw new Error("BREVO_RESET_TEMPLATE_ID no está configurado");
+
+  await getClient().transactionalEmails.sendTransacEmail({
+    to: [{ email: to }],
+    sender: getSender(),
+    templateId,
+    params: { resetUrl },
+  });
+}
+
+export async function sendAccountDisabledEmail({ to }: { to: string }): Promise<void> {
+  const templateId = Number(process.env.BREVO_DISABLED_TEMPLATE_ID);
+  if (!templateId) throw new Error("BREVO_DISABLED_TEMPLATE_ID no está configurado");
+
+  await getClient().transactionalEmails.sendTransacEmail({
+    to: [{ email: to }],
+    sender: getSender(),
+    templateId,
+  });
+}

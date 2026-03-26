@@ -92,6 +92,56 @@ describe("purchasesRepository.updateStatus", () => {
   });
 });
 
+describe("purchasesRepository.activate", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupColRef();
+    mockDocUpdate.mockResolvedValue(undefined);
+  });
+
+  it("calls doc(id).update() with uid, status 'activated', and timestamps", async () => {
+    await purchasesRepository.activate("doc-id", "uid-123");
+
+    expect(mockDoc).toHaveBeenCalledWith("doc-id");
+    expect(mockDocUpdate).toHaveBeenCalledWith({
+      uid: "uid-123",
+      status: "activated",
+      activatedAt: "__serverTimestamp__",
+      updatedAt: "__serverTimestamp__",
+    });
+  });
+});
+
+describe("purchasesRepository.findById", () => {
+  const mockDocGet = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupColRef();
+    mockDoc.mockReturnValue({ update: mockDocUpdate, get: mockDocGet });
+  });
+
+  it("returns null when the document does not exist", async () => {
+    mockDocGet.mockResolvedValue({ exists: false });
+
+    const result = await purchasesRepository.findById("missing-id");
+
+    expect(result).toBeNull();
+  });
+
+  it("returns the purchase with id when the document exists", async () => {
+    mockDocGet.mockResolvedValue({
+      exists: true,
+      id: "doc-1",
+      data: () => ({ ...BASE_DATA }),
+    });
+
+    const result = await purchasesRepository.findById("doc-1");
+
+    expect(result).toEqual({ id: "doc-1", ...BASE_DATA });
+  });
+});
+
 describe("purchasesRepository.findByPaymentId", () => {
   beforeEach(() => {
     jest.clearAllMocks();

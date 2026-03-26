@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-type PaymentProvider = "mercadopago" | "stripe";
+import type { PaymentProvider } from "@/lib/firebase/repositories/purchases.repository";
 
 export default function CheckoutForm() {
   const [email, setEmail] = useState("");
