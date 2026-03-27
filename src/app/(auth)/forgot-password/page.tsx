@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import FlowShell from "@/components/flow/FlowShell";
 
 type PageState = "form" | "sent";
 
@@ -110,18 +111,4 @@ export default function ForgotPasswordPage() {
   );
 }
 
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-canvas flex flex-col">
-      <header className="w-full py-6 px-8 bg-white border-b border-slate-200">
-        <h1 className="text-navy text-xl font-bold">No Fumo Más</h1>
-      </header>
-      <main className="flex-grow flex flex-col items-center py-12 px-4">
-        <div className="w-full max-w-md">{children}</div>
-      </main>
-      <footer className="bg-navy w-full py-8 px-4 text-center">
-        <p className="text-white/70 text-sm">© 2026 No Fumo Más. Todos los derechos reservados.</p>
-      </footer>
-    </div>
-  );
-}
+const PageShell = FlowShell;

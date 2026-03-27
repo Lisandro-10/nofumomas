@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/auth/activate/route";
 
+jest.mock("jose", () => ({
+  decodeJwt: jest.fn(),
+}));
+
 jest.mock("@/lib/email/activation-token", () => ({
   verifyActivationToken: jest.fn(),
 }));
@@ -25,6 +29,7 @@ jest.mock("@/lib/firebase/admin", () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+import { decodeJwt } from "jose";
 import { verifyActivationToken } from "@/lib/email/activation-token";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
@@ -68,12 +73,52 @@ describe("GET /api/auth/activate — token validation", () => {
     expect(res.headers.get("location")).toContain("error=token-missing");
   });
 
-  it("redirects to /?error=invalid-token when token verification fails", async () => {
+  it("redirects to /?error=invalid-token when token verification fails with a generic error", async () => {
     jest.mocked(verifyActivationToken).mockRejectedValue(new Error("bad token"));
 
     const res = await GET(makeRequest("bad-token"));
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("error=invalid-token");
+  });
+
+  it("redirects to /set-password?expired=true when token is expired (ERR_JWT_EXPIRED)", async () => {
+    const expiredError = Object.assign(new Error("jwt expired"), {
+      code: "ERR_JWT_EXPIRED",
+    });
+    jest.mocked(verifyActivationToken).mockRejectedValue(expiredError);
+    jest.mocked(decodeJwt).mockReturnValue({ email: "user@test.com" } as never);
+
+    const res = await GET(makeRequest("expired-token"));
+    expect(res.status).toBe(307);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/set-password");
+    expect(location).toContain("expired=true");
+    expect(location).toContain("mode=activation");
+  });
+
+  it("includes the decoded email in the expired-token redirect", async () => {
+    const expiredError = Object.assign(new Error("jwt expired"), {
+      code: "ERR_JWT_EXPIRED",
+    });
+    jest.mocked(verifyActivationToken).mockRejectedValue(expiredError);
+    jest.mocked(decodeJwt).mockReturnValue({ email: "someone@example.com" } as never);
+
+    const res = await GET(makeRequest("expired-token"));
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("email=someone%40example.com");
+  });
+
+  it("redirects without email when expired token has no decodable email", async () => {
+    const expiredError = Object.assign(new Error("jwt expired"), {
+      code: "ERR_JWT_EXPIRED",
+    });
+    jest.mocked(verifyActivationToken).mockRejectedValue(expiredError);
+    jest.mocked(decodeJwt).mockReturnValue({} as never);
+
+    const res = await GET(makeRequest("expired-token"));
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/set-password");
+    expect(location).toContain("expired=true");
   });
 
   it("redirects to /?error=invalid-token when purchase is not found", async () => {

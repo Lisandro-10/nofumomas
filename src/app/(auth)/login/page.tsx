@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth.context";
+import FlowShell from "@/components/flow/FlowShell";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -28,8 +29,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-canvas flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-card shadow-card p-8 flex flex-col gap-6">
+    <FlowShell>
+      <div className="bg-white rounded-card shadow-card p-8 flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-navy">Bienvenido</h1>
           <p className="text-sm text-navy/60">Ingresá a tu cuenta para continuar.</p>
@@ -85,6 +86,6 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
-    </main>
+    </FlowShell>
   );
 }

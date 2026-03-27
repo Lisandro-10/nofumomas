@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import CheckoutForm from "./_components/CheckoutForm";
+import FlowHeader from "@/components/flow/FlowHeader";
+import FlowFooter from "@/components/flow/FlowFooter";
 
 export const metadata: Metadata = {
   title: "Checkout - No Fumo Mas",
@@ -9,18 +11,7 @@ export const metadata: Metadata = {
 export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-canvas font-sans flex flex-col">
-      {/* Header */}
-      <header className="w-full py-6 px-4 md:px-8 max-w-7xl mx-auto flex items-center justify-between">
-        <h1 className="text-navy text-xl md:text-2xl font-extrabold tracking-tight">
-          No Fumo Mas
-        </h1>
-        <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 font-medium">
-          <span className="material-symbols-outlined text-green-vitality text-lg">
-            verified_user
-          </span>
-          Pago 100% Seguro
-        </div>
-      </header>
+      <FlowHeader showSecureBadge />
 
       <main className="max-w-7xl mx-auto px-4 pb-12 lg:pb-24 flex-grow w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -97,22 +88,7 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full py-8 bg-navy text-white">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col items-center md:items-start gap-2">
-            <span className="text-xl font-extrabold tracking-tight">No Fumo Mas</span>
-            <p className="text-xs text-slate-300 font-medium">
-              © 2026 No Fumo Mas. Todos los derechos reservados.
-            </p>
-          </div>
-          <div className="flex items-center gap-6 text-xs font-semibold text-slate-300 uppercase tracking-widest">
-            <a href="#" className="hover:text-orange transition-colors">Privacidad</a>
-            <a href="#" className="hover:text-orange transition-colors">Soporte</a>
-            <a href="#" className="hover:text-orange transition-colors">Cookies</a>
-          </div>
-        </div>
-      </footer>
+      <FlowFooter />
     </div>
   );
 }

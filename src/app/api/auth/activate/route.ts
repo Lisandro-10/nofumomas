@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decodeJwt } from "jose";
 import { verifyActivationToken } from "@/lib/email/activation-token";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
@@ -20,7 +21,17 @@ export async function GET(req: NextRequest) {
   let email: string;
   try {
     ({ purchaseId, email } = await verifyActivationToken(token));
-  } catch {
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code;
+    if (code === "ERR_JWT_EXPIRED") {
+      const payload = decodeJwt(token);
+      const expiredEmail = typeof payload.email === "string" ? payload.email : "";
+      const dest = new URL("/set-password", req.url);
+      dest.searchParams.set("expired", "true");
+      dest.searchParams.set("email", expiredEmail);
+      dest.searchParams.set("mode", "activation");
+      return NextResponse.redirect(dest.toString());
+    }
     return redirect(req, { error: "invalid-token" });
   }
 

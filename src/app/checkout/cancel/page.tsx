@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import FlowShell from "@/components/flow/FlowShell";
 
 export const metadata: Metadata = {
   title: "Pago cancelado - No Fumo Mas",
@@ -7,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function CheckoutCancelPage() {
   return (
-    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center px-4 text-center">
-      <div className="bg-white rounded-card shadow-card border border-slate-100 p-10 max-w-md w-full">
+    <FlowShell>
+      <div className="bg-white rounded-card shadow-card border border-slate-100 p-10 text-center">
         <span className="material-symbols-outlined text-slate-400 text-6xl mb-4 block">
           cancel
         </span>
@@ -20,6 +21,6 @@ export default function CheckoutCancelPage() {
           Volver al checkout
         </Link>
       </div>
-    </div>
+    </FlowShell>
   );
 }

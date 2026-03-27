@@ -44,6 +44,16 @@ export async function POST(req: NextRequest) {
     if (paymentProvider === "stripe") {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+      // Create purchase first so we can include purchaseId in the success URL
+      const purchaseId = await purchasesRepository.create({
+        email,
+        provider: "stripe",
+        paymentId: "pending_stripe",
+        status: "pending",
+        amount: PRODUCT.amountUsd,
+        currency: "USD",
+      });
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         customer_email: email,
@@ -58,21 +68,13 @@ export async function POST(req: NextRequest) {
           },
         ],
         mode: "payment",
-        success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${origin}/checkout/success`,
         cancel_url: `${origin}/checkout/cancel`,
-      });
-
-      const purchaseId = await purchasesRepository.create({
-        email,
-        provider: "stripe",
-        paymentId: session.id,
-        status: "pending",
-        amount: PRODUCT.amountUsd,
-        currency: "USD",
-      });
-
-      await stripe.checkout.sessions.update(session.id, {
         metadata: { purchaseId },
+      });
+
+      await adminDb.collection("purchases").doc(purchaseId).update({
+        paymentId: session.id,
       });
 
       return NextResponse.json({ redirectUrl: session.url });
@@ -126,7 +128,7 @@ export async function POST(req: NextRequest) {
         back_urls: {
           success: `${mpAppBase}/checkout/success`,
           failure: `${mpAppBase}/checkout/cancel`,
-          pending: `${mpAppBase}/checkout/success`,
+          pending: `${mpAppBase}/checkout/pending`,
         },
         // auto_return requires a public URL — disabled on localhost
         ...(mpAppBase.includes("localhost") ? {} : { auto_return: "approved" }),
