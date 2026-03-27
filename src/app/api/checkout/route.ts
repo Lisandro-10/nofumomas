@@ -143,9 +143,9 @@ export async function POST(req: NextRequest) {
     });
 
     const redirectUrl =
-      process.env.NODE_ENV === "production"
-        ? result.init_point
-        : result.sandbox_init_point;
+      process.env.MERCADOPAGO_SANDBOX === "true"
+        ? result.sandbox_init_point
+        : result.init_point;
 
     return NextResponse.json({ redirectUrl });
   } catch (err) {

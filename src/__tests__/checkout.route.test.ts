@@ -198,8 +198,7 @@ describe("POST /api/checkout — MercadoPago", () => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
     delete process.env.MERCADOPAGO_NOTIFICATION_URL;
-    // @ts-expect-error NODE_ENV is readonly but needs to be overridden in tests
-    process.env.NODE_ENV = "test";
+    process.env.MERCADOPAGO_SANDBOX = "true";
     setupAdminDbChain();
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
   });
@@ -290,7 +289,7 @@ describe("POST /api/checkout — MercadoPago", () => {
     expect(mockDocUpdate).toHaveBeenCalledWith({ paymentId: "pref_123" });
   });
 
-  it("returns sandbox_init_point as redirectUrl in non-production", async () => {
+  it("returns sandbox_init_point as redirectUrl when MERCADOPAGO_SANDBOX=true", async () => {
     mockBlueRate(1450);
     (Preference as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue({
