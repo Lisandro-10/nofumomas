@@ -198,7 +198,6 @@ describe("POST /api/checkout — MercadoPago", () => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
     delete process.env.MERCADOPAGO_NOTIFICATION_URL;
-    process.env.MERCADOPAGO_SANDBOX = "true";
     setupAdminDbChain();
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
   });
@@ -289,7 +288,7 @@ describe("POST /api/checkout — MercadoPago", () => {
     expect(mockDocUpdate).toHaveBeenCalledWith({ paymentId: "pref_123" });
   });
 
-  it("returns sandbox_init_point as redirectUrl when MERCADOPAGO_SANDBOX=true", async () => {
+  it("returns init_point as redirectUrl", async () => {
     mockBlueRate(1450);
     (Preference as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue({
@@ -303,7 +302,7 @@ describe("POST /api/checkout — MercadoPago", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.redirectUrl).toBe("https://sandbox.mp.com/pay");
+    expect(body.redirectUrl).toBe("https://mp.com/pay");
   });
 
   it("omits auto_return when back_urls point to localhost", async () => {

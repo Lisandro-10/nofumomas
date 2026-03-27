@@ -142,10 +142,7 @@ export async function POST(req: NextRequest) {
       paymentId: result.id,
     });
 
-    const redirectUrl =
-      process.env.MERCADOPAGO_SANDBOX === "true"
-        ? result.sandbox_init_point
-        : result.init_point;
+    const redirectUrl = result.init_point;
 
     return NextResponse.json({ redirectUrl });
   } catch (err) {

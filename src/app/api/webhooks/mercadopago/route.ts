@@ -49,29 +49,8 @@ export async function POST(req: NextRequest) {
     // Verify signature if secret is configured.
     // Per MP docs, the signature uses data.id from the URL query param, not the body.
     const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    console.log("[mp-debug] body.data.id:", paymentId, "| type:", typeof paymentId);
-    console.log("[mp-debug] url data.id:", req.nextUrl.searchParams.get("data.id"));
-    console.log("[mp-debug] full url:", req.nextUrl.toString());
-    console.log("[mp-debug] x-signature:", req.headers.get("x-signature"));
-    console.log("[mp-debug] x-request-id:", req.headers.get("x-request-id"));
-    console.log("[mp-debug] secret present:", !!webhookSecret, "| len:", webhookSecret?.length);
-    console.log("[mp-debug] secret repr:", JSON.stringify(webhookSecret));
     if (webhookSecret) {
       const dataIdFromUrl = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
-      console.log("[mp-debug] dataIdForSig:", dataIdFromUrl);
-      const xSig = req.headers.get("x-signature") ?? "";
-      const xReqId = req.headers.get("x-request-id") ?? "";
-      const parts: Record<string, string> = {};
-      xSig.split(",").forEach((part) => {
-        const [k, v] = part.split("=");
-        if (k && v) parts[k.trim()] = v.trim();
-      });
-      const manifest = `id:${dataIdFromUrl};request-id:${xReqId};ts:${parts["ts"]};`;
-      const { createHmac: _hmac } = await import("crypto");
-      const computed = _hmac("sha256", webhookSecret).update(manifest).digest("hex");
-      console.log("[mp-debug] manifest:", manifest);
-      console.log("[mp-debug] computed:", computed);
-      console.log("[mp-debug] expected:", parts["v1"]);
       if (!verifyMpSignature(req, dataIdFromUrl, webhookSecret)) {
         console.error("[webhook/mercadopago] firma inválida");
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
