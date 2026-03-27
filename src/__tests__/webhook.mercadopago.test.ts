@@ -39,12 +39,11 @@ import { Payment } from "mercadopago";
 import { adminAuth } from "@/lib/firebase/admin";
 import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo.service";
 
-// 64-char hex string (32 bytes) matching the format of MP's clave secreta
-const WEBHOOK_SECRET = "b0bda0cb4d73ab4ea13ad512b11344053534a4070ca076b3973e342a59783276";
+const WEBHOOK_SECRET = "test-webhook-secret";
 
 function buildSignature(dataId: string, requestId: string, ts: string): string {
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-  const v1 = createHmac("sha256", Buffer.from(WEBHOOK_SECRET, "hex")).update(manifest).digest("hex");
+  const v1 = createHmac("sha256", WEBHOOK_SECRET).update(manifest).digest("hex");
   return `ts=${ts},v1=${v1}`;
 }
 

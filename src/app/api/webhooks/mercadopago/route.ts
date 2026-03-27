@@ -27,8 +27,7 @@ function verifyMpSignature(
   if (!ts || !v1) return false;
 
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-  const keyBuffer = Buffer.from(webhookSecret, "hex");
-  const hash = createHmac("sha256", keyBuffer).update(manifest).digest("hex");
+  const hash = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
 
   return hash === v1;
 }
@@ -47,10 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Verify signature if secret is configured
+    // Verify signature if secret is configured.
+    // Per MP docs, the signature uses data.id from the URL query param, not the body.
     const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
     if (webhookSecret) {
-      if (!verifyMpSignature(req, paymentId, webhookSecret)) {
+      const dataIdFromUrl = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
+      if (!verifyMpSignature(req, dataIdFromUrl, webhookSecret)) {
         console.error("[webhook/mercadopago] firma inválida");
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
       }
