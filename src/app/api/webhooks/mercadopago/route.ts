@@ -27,20 +27,10 @@ function verifyMpSignature(
   if (!ts || !v1) return false;
 
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-  const hash = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
+  const keyBuffer = Buffer.from(webhookSecret, "hex");
+  const hash = createHmac("sha256", keyBuffer).update(manifest).digest("hex");
 
-  const match = hash === v1;
-  if (!match) {
-    console.error("[mp-sig-debug] manifest:", manifest);
-    console.error("[mp-sig-debug] computed:", hash);
-    console.error("[mp-sig-debug] expected:", v1);
-    console.error("[mp-sig-debug] secret_len:", webhookSecret.length);
-    console.error("[mp-sig-debug] secret_start:", webhookSecret.slice(0, 4));
-    console.error("[mp-sig-debug] secret_end:", webhookSecret.slice(-4));
-    console.error("[mp-sig-debug] x-signature:", xSignature);
-    console.error("[mp-sig-debug] x-request-id:", xRequestId);
-  }
-  return match;
+  return hash === v1;
 }
 
 export async function POST(req: NextRequest) {
