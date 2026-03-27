@@ -1,4 +1,3 @@
-import { createHmac } from "crypto";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/webhooks/mercadopago/route";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
@@ -39,18 +38,10 @@ import { Payment } from "mercadopago";
 import { adminAuth } from "@/lib/firebase/admin";
 import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo.service";
 
-const WEBHOOK_SECRET = "test-webhook-secret";
-
-function buildSignature(dataId: string, requestId: string, ts: string): string {
-  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-  const v1 = createHmac("sha256", WEBHOOK_SECRET).update(manifest).digest("hex");
-  return `ts=${ts},v1=${v1}`;
-}
-
-function makeRequest(body: object, headers: Record<string, string> = {}) {
+function makeRequest(body: object) {
   return new NextRequest("http://localhost:3000/api/webhooks/mercadopago", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
@@ -77,7 +68,6 @@ describe("POST /api/webhooks/mercadopago — ignored notifications", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
-    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
   });
 
   it("returns { received: true } without querying MP for non-payment event types", async () => {
@@ -112,80 +102,11 @@ describe("POST /api/webhooks/mercadopago — ignored notifications", () => {
   });
 });
 
-describe("POST /api/webhooks/mercadopago — signature verification", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
-    process.env.MERCADOPAGO_WEBHOOK_SECRET = WEBHOOK_SECRET;
-    process.env.MERCADOPAGO_VERIFY_WEBHOOKS = "true";
-    jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
-    jest.mocked(purchasesRepository.findById).mockResolvedValue(null);
-  });
-
-  afterEach(() => {
-    delete process.env.MERCADOPAGO_VERIFY_WEBHOOKS;
-  });
-
-  it("returns 400 when HMAC signature is invalid and MERCADOPAGO_VERIFY_WEBHOOKS=true", async () => {
-    const res = await POST(
-      makeRequest(
-        { type: "payment", data: { id: "pay_123" } },
-        { "x-signature": "ts=1700000000,v1=invalidsignaturehash", "x-request-id": "req-abc" }
-      )
-    );
-
-    expect(res.status).toBe(400);
-  });
-
-  it("proceeds and processes payment when HMAC signature is valid", async () => {
-    const dataId = "pay_valid";
-    const requestId = "req-xyz";
-    const ts = "1700000000";
-    mockPayment("approved");
-
-    const res = await POST(
-      makeRequest(
-        { type: "payment", data: { id: dataId } },
-        { "x-signature": buildSignature(dataId, requestId, ts), "x-request-id": requestId }
-      )
-    );
-
-    expect(res.status).toBe(200);
-    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "paid");
-  });
-
-  it("processes payment even with invalid signature when MERCADOPAGO_VERIFY_WEBHOOKS is not set", async () => {
-    delete process.env.MERCADOPAGO_VERIFY_WEBHOOKS;
-    mockPayment("approved");
-
-    const res = await POST(
-      makeRequest(
-        { type: "payment", data: { id: "pay_123" } },
-        { "x-signature": "ts=1700000000,v1=invalidsignaturehash", "x-request-id": "req-abc" }
-      )
-    );
-
-    expect(res.status).toBe(200);
-    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "paid");
-  });
-
-  it("skips all signature logic when MERCADOPAGO_WEBHOOK_SECRET is not set", async () => {
-    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    mockPayment("approved");
-
-    const res = await POST(makeRequest({ type: "payment", data: { id: "pay_123" } }));
-
-    expect(res.status).toBe(200);
-    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "paid");
-  });
-});
-
 describe("POST /api/webhooks/mercadopago — status transitions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
-    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
     jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
     jest.mocked(purchasesRepository.findById).mockResolvedValue(null);
   });
@@ -247,7 +168,6 @@ describe("POST /api/webhooks/mercadopago — refund and chargeback", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
-    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
     jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
     jest.mocked(adminAuth.updateUser as jest.Mock).mockResolvedValue(undefined);
   });
@@ -313,7 +233,6 @@ describe("POST /api/webhooks/mercadopago — error handling", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
-    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
   });
 
   it("returns 500 when the MP Payment.get() call throws", async () => {

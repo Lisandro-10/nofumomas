@@ -1,4 +1,3 @@
-import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
@@ -6,16 +5,40 @@ import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo
 import { signActivationToken } from "@/lib/email/activation-token";
 import { adminAuth } from "@/lib/firebase/admin";
 
-function parseXSignature(header: string): Record<string, string> {
-  const parts: Record<string, string> = {};
-  header.split(",").forEach((part) => {
-    const idx = part.indexOf("=");
-    if (idx !== -1) {
-      parts[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
-    }
-  });
-  return parts;
-}
+// ── Signature verification (pendiente) ────────────────────────────────────────
+// MP envía notificaciones IPN vía notification_url (sistema legacy). La "Clave
+// secreta" del panel de MP es para webhooks registrados ahí, no para IPN, por
+// lo que el HMAC nunca coincide. Cuando MP migre o se use el sistema de
+// webhooks del panel, descomentar y ajustar:
+//
+// import { createHmac } from "crypto";
+//
+// function parseXSignature(header: string): Record<string, string> {
+//   const parts: Record<string, string> = {};
+//   header.split(",").forEach((part) => {
+//     const idx = part.indexOf("=");
+//     if (idx !== -1) {
+//       parts[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
+//     }
+//   });
+//   return parts;
+// }
+//
+// // En POST, antes de llamar a Payment.get():
+// const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+// const shouldVerify = process.env.MERCADOPAGO_VERIFY_WEBHOOKS === "true";
+// if (webhookSecret && shouldVerify) {
+//   const dataId = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
+//   const xSig = req.headers.get("x-signature") ?? "";
+//   const xReqId = req.headers.get("x-request-id") ?? "";
+//   const { ts, v1 } = parseXSignature(xSig);
+//   const manifest = `id:${dataId};request-id:${xReqId};ts:${ts};`;
+//   const computed = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
+//   if (computed !== v1) {
+//     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+//   }
+// }
+// ──────────────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,30 +52,6 @@ export async function POST(req: NextRequest) {
     const paymentId: string = body.data?.id;
     if (!paymentId) {
       return NextResponse.json({ received: true });
-    }
-
-    // Signature verification — only enforced when MERCADOPAGO_VERIFY_WEBHOOKS=true.
-    // Per MP docs, the manifest uses data.id from the URL query param.
-    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    const shouldVerify = process.env.MERCADOPAGO_VERIFY_WEBHOOKS === "true";
-    if (webhookSecret) {
-      const dataId = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
-      const xSig = req.headers.get("x-signature") ?? "";
-      const xReqId = req.headers.get("x-request-id") ?? "";
-      const { ts, v1 } = parseXSignature(xSig);
-      const manifest = `id:${dataId};request-id:${xReqId};ts:${ts};`;
-      const computed = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
-      const valid = computed === v1;
-
-      console.log("[webhook/mp] sig | manifest:", manifest);
-      console.log("[webhook/mp] sig | computed:", computed);
-      console.log("[webhook/mp] sig | expected:", v1);
-      console.log("[webhook/mp] sig | match:", valid);
-
-      if (!valid && shouldVerify) {
-        console.error("[webhook/mp] firma inválida — rechazando (MERCADOPAGO_VERIFY_WEBHOOKS=true)");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-      }
     }
 
     const mpClient = new MercadoPagoConfig({
