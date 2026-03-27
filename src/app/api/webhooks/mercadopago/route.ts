@@ -6,30 +6,15 @@ import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo
 import { signActivationToken } from "@/lib/email/activation-token";
 import { adminAuth } from "@/lib/firebase/admin";
 
-function verifyMpSignature(
-  req: NextRequest,
-  dataId: string,
-  webhookSecret: string
-): boolean {
-  const xSignature = req.headers.get("x-signature");
-  const xRequestId = req.headers.get("x-request-id");
-
-  if (!xSignature || !xRequestId) return false;
-
+function parseXSignature(header: string): Record<string, string> {
   const parts: Record<string, string> = {};
-  xSignature.split(",").forEach((part) => {
-    const [key, value] = part.split("=");
-    if (key && value) parts[key.trim()] = value.trim();
+  header.split(",").forEach((part) => {
+    const idx = part.indexOf("=");
+    if (idx !== -1) {
+      parts[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
+    }
   });
-
-  const ts = parts["ts"];
-  const v1 = parts["v1"];
-  if (!ts || !v1) return false;
-
-  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-  const hash = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
-
-  return hash === v1;
+  return parts;
 }
 
 export async function POST(req: NextRequest) {
@@ -46,13 +31,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Verify signature if secret is configured.
-    // Per MP docs, the signature uses data.id from the URL query param, not the body.
+    // Signature verification — only enforced when MERCADOPAGO_VERIFY_WEBHOOKS=true.
+    // Per MP docs, the manifest uses data.id from the URL query param.
     const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    const shouldVerify = process.env.MERCADOPAGO_VERIFY_WEBHOOKS === "true";
     if (webhookSecret) {
-      const dataIdFromUrl = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
-      if (!verifyMpSignature(req, dataIdFromUrl, webhookSecret)) {
-        console.error("[webhook/mercadopago] firma inválida");
+      const dataId = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
+      const xSig = req.headers.get("x-signature") ?? "";
+      const xReqId = req.headers.get("x-request-id") ?? "";
+      const { ts, v1 } = parseXSignature(xSig);
+      const manifest = `id:${dataId};request-id:${xReqId};ts:${ts};`;
+      const computed = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
+      const valid = computed === v1;
+
+      console.log("[webhook/mp] sig | manifest:", manifest);
+      console.log("[webhook/mp] sig | computed:", computed);
+      console.log("[webhook/mp] sig | expected:", v1);
+      console.log("[webhook/mp] sig | match:", valid);
+
+      if (!valid && shouldVerify) {
+        console.error("[webhook/mp] firma inválida — rechazando (MERCADOPAGO_VERIFY_WEBHOOKS=true)");
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
       }
     }

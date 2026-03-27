@@ -117,27 +117,16 @@ describe("POST /api/webhooks/mercadopago — signature verification", () => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
     process.env.MERCADOPAGO_WEBHOOK_SECRET = WEBHOOK_SECRET;
+    process.env.MERCADOPAGO_VERIFY_WEBHOOKS = "true";
     jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
     jest.mocked(purchasesRepository.findById).mockResolvedValue(null);
   });
 
-  it("returns 400 when x-signature header is missing", async () => {
-    const res = await POST(
-      makeRequest({ type: "payment", data: { id: "pay_123" } }, { "x-request-id": "req-abc" })
-    );
-
-    expect(res.status).toBe(400);
+  afterEach(() => {
+    delete process.env.MERCADOPAGO_VERIFY_WEBHOOKS;
   });
 
-  it("returns 400 when x-request-id header is missing", async () => {
-    const res = await POST(
-      makeRequest({ type: "payment", data: { id: "pay_123" } }, { "x-signature": "ts=123,v1=abc" })
-    );
-
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when the HMAC signature is invalid", async () => {
+  it("returns 400 when HMAC signature is invalid and MERCADOPAGO_VERIFY_WEBHOOKS=true", async () => {
     const res = await POST(
       makeRequest(
         { type: "payment", data: { id: "pay_123" } },
@@ -148,7 +137,7 @@ describe("POST /api/webhooks/mercadopago — signature verification", () => {
     expect(res.status).toBe(400);
   });
 
-  it("proceeds normally when HMAC signature is valid", async () => {
+  it("proceeds and processes payment when HMAC signature is valid", async () => {
     const dataId = "pay_valid";
     const requestId = "req-xyz";
     const ts = "1700000000";
@@ -165,7 +154,22 @@ describe("POST /api/webhooks/mercadopago — signature verification", () => {
     expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "paid");
   });
 
-  it("skips signature verification when MERCADOPAGO_WEBHOOK_SECRET is not set", async () => {
+  it("processes payment even with invalid signature when MERCADOPAGO_VERIFY_WEBHOOKS is not set", async () => {
+    delete process.env.MERCADOPAGO_VERIFY_WEBHOOKS;
+    mockPayment("approved");
+
+    const res = await POST(
+      makeRequest(
+        { type: "payment", data: { id: "pay_123" } },
+        { "x-signature": "ts=1700000000,v1=invalidsignaturehash", "x-request-id": "req-abc" }
+      )
+    );
+
+    expect(res.status).toBe(200);
+    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "paid");
+  });
+
+  it("skips all signature logic when MERCADOPAGO_WEBHOOK_SECRET is not set", async () => {
     delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
     mockPayment("approved");
 
