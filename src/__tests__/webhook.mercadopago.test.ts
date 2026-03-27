@@ -34,16 +34,23 @@ jest.mock("@/lib/email/brevo.service", () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+import { createHmac } from "crypto";
 import { Payment } from "mercadopago";
 import { adminAuth } from "@/lib/firebase/admin";
 import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo.service";
 
-function makeRequest(body: object) {
-  return new NextRequest("http://localhost:3000/api/webhooks/mercadopago", {
+function makeRequest(body: object, headers: Record<string, string> = {}) {
+  return new NextRequest("http://localhost:3000/api/webhooks/mercadopago?data.id=123456&type=payment", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
+}
+
+function buildXSignature(secret: string, dataId: string, requestId: string, ts: string): string {
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const v1 = createHmac("sha256", secret).update(manifest).digest("hex");
+  return `ts=${ts},v1=${v1}`;
 }
 
 function mockPayment(status: string, extra: object = {}) {
@@ -63,6 +70,90 @@ const BASE_PURCHASE = {
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
+
+describe("POST /api/webhooks/mercadopago — signature verification", () => {
+  const SECRET = "test-webhook-secret";
+  const DATA_ID = "123456";
+  const REQUEST_ID = "bb56a2f1-6aae-46ac-982e-9dcd3581d08e";
+  const TS = "1742505638683";
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
+    process.env.MERCADOPAGO_WEBHOOK_SECRET = SECRET;
+    jest.mocked(purchasesRepository.updateStatus).mockResolvedValue(undefined);
+    jest.mocked(purchasesRepository.findById).mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  });
+
+  it("returns 400 when x-signature header is missing", async () => {
+    (Payment as unknown as jest.Mock).mockImplementation(() => ({
+      get: jest.fn().mockResolvedValue({ status: "approved", external_reference: "purchase-abc" }),
+    }));
+
+    const res = await POST(makeRequest({ type: "payment", data: { id: DATA_ID } }));
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid signature");
+    expect(purchasesRepository.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when x-signature has an incorrect v1", async () => {
+    (Payment as unknown as jest.Mock).mockImplementation(() => ({
+      get: jest.fn().mockResolvedValue({ status: "approved", external_reference: "purchase-abc" }),
+    }));
+
+    const res = await POST(
+      makeRequest(
+        { type: "payment", data: { id: DATA_ID } },
+        {
+          "x-signature": `ts=${TS},v1=invalidsignature`,
+          "x-request-id": REQUEST_ID,
+        }
+      )
+    );
+
+    expect(res.status).toBe(400);
+    expect(purchasesRepository.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it("processes the payment when x-signature is valid", async () => {
+    (Payment as unknown as jest.Mock).mockImplementation(() => ({
+      get: jest.fn().mockResolvedValue({ status: "rejected", external_reference: "purchase-abc" }),
+    }));
+
+    const xSignature = buildXSignature(SECRET, DATA_ID, REQUEST_ID, TS);
+
+    const res = await POST(
+      makeRequest(
+        { type: "payment", data: { id: DATA_ID } },
+        {
+          "x-signature": xSignature,
+          "x-request-id": REQUEST_ID,
+        }
+      )
+    );
+
+    expect(res.status).toBe(200);
+    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "failed");
+  });
+
+  it("skips signature verification when MERCADOPAGO_WEBHOOK_SECRET is not set", async () => {
+    delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    (Payment as unknown as jest.Mock).mockImplementation(() => ({
+      get: jest.fn().mockResolvedValue({ status: "rejected", external_reference: "purchase-abc" }),
+    }));
+
+    const res = await POST(makeRequest({ type: "payment", data: { id: DATA_ID } }));
+
+    expect(res.status).toBe(200);
+    expect(purchasesRepository.updateStatus).toHaveBeenCalledWith("purchase-abc", "failed");
+  });
+});
 
 describe("POST /api/webhooks/mercadopago — ignored notifications", () => {
   beforeEach(() => {

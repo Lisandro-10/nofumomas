@@ -1,44 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "crypto";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
 import { sendActivationEmail, sendAccountDisabledEmail } from "@/lib/email/brevo.service";
 import { signActivationToken } from "@/lib/email/activation-token";
 import { adminAuth } from "@/lib/firebase/admin";
 
-// ── Signature verification (pendiente) ────────────────────────────────────────
-// MP envía notificaciones IPN vía notification_url (sistema legacy). La "Clave
-// secreta" del panel de MP es para webhooks registrados ahí, no para IPN, por
-// lo que el HMAC nunca coincide. Cuando MP migre o se use el sistema de
-// webhooks del panel, descomentar y ajustar:
+// ── Signature verification ────────────────────────────────────────────────────
+// Valida el header x-signature enviado por MP en cada webhook.
+// Ref: https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks
 //
-// import { createHmac } from "crypto";
-//
-// function parseXSignature(header: string): Record<string, string> {
-//   const parts: Record<string, string> = {};
-//   header.split(",").forEach((part) => {
-//     const idx = part.indexOf("=");
-//     if (idx !== -1) {
-//       parts[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
-//     }
-//   });
-//   return parts;
-// }
-//
-// // En POST, antes de llamar a Payment.get():
-// const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-// const shouldVerify = process.env.MERCADOPAGO_VERIFY_WEBHOOKS === "true";
-// if (webhookSecret && shouldVerify) {
-//   const dataId = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
-//   const xSig = req.headers.get("x-signature") ?? "";
-//   const xReqId = req.headers.get("x-request-id") ?? "";
-//   const { ts, v1 } = parseXSignature(xSig);
-//   const manifest = `id:${dataId};request-id:${xReqId};ts:${ts};`;
-//   const computed = createHmac("sha256", webhookSecret).update(manifest).digest("hex");
-//   if (computed !== v1) {
-//     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-//   }
-// }
+// Template: id:[data.id];request-id:[x-request-id];ts:[ts];
+// Se omiten los campos que no estén presentes en la notificación recibida.
 // ──────────────────────────────────────────────────────────────────────────────
+
+function parseXSignature(header: string): Record<string, string> {
+  const parts: Record<string, string> = {};
+  header.split(",").forEach((part) => {
+    const idx = part.indexOf("=");
+    if (idx !== -1) {
+      parts[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
+    }
+  });
+  return parts;
+}
+
+function buildSignatureTemplate(dataId: string | null, xReqId: string | null, ts: string | null): string {
+  const parts: string[] = [];
+  if (dataId) parts.push(`id:${dataId}`);
+  if (xReqId) parts.push(`request-id:${xReqId}`);
+  if (ts) parts.push(`ts:${ts}`);
+  return parts.join(";") + (parts.length > 0 ? ";" : "");
+}
+
+function verifyMercadoPagoSignature(req: NextRequest, dataId: string | null, secret: string): boolean {
+  const xSig = req.headers.get("x-signature") ?? "";
+  const xReqId = req.headers.get("x-request-id");
+  const { ts, v1 } = parseXSignature(xSig);
+  if (!ts || !v1) return false;
+  const manifest = buildSignatureTemplate(dataId, xReqId, ts);
+  const computed = createHmac("sha256", secret).update(manifest).digest("hex");
+  return computed === v1;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,6 +55,14 @@ export async function POST(req: NextRequest) {
     const paymentId: string = body.data?.id;
     if (!paymentId) {
       return NextResponse.json({ received: true });
+    }
+
+    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const dataId = req.nextUrl.searchParams.get("data.id") ?? String(paymentId);
+      if (!verifyMercadoPagoSignature(req, dataId, webhookSecret)) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+      }
     }
 
     const mpClient = new MercadoPagoConfig({
