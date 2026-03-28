@@ -1,3 +1,6 @@
+# visual studio code
+.vscode/
+
 # dependencies
 /node_modules
 
@@ -18,3 +21,12 @@ next-env.d.ts
 .DS_Store
 *.pem
 npm-debug.log*
+
+# dev log
+DEV_LOG.md
+
+# claude
+CLAUDE.md
+
+# docs
+/docs/

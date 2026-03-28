@@ -28,6 +28,16 @@ describe("middleware", () => {
     expect(res.status).toBe(200);
   });
 
+  it("allows request through on /forgot-password", () => {
+    const res = middleware(makeRequest("/forgot-password"));
+    expect(res.status).toBe(200);
+  });
+
+  it("allows request through on /set-password", () => {
+    const res = middleware(makeRequest("/set-password"));
+    expect(res.status).toBe(200);
+  });
+
   it("redirects to /login when both cookies are absent on a protected path", () => {
     const res = middleware(makeRequest("/dashboard"));
     expect(res.status).toBe(307);

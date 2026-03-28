@@ -13,6 +13,7 @@ import {
   signIn,
   signOut,
   signUp,
+  signInWithGoogle,
 } from "@/lib/firebase/auth.service";
 
 interface AuthContextValue {
@@ -21,6 +22,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -38,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, signUp }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, signUp, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

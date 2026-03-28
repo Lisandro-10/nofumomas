@@ -3,8 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_PATHS = [
   "/login",
   "/register",
+  "/forgot-password",
+  "/set-password",
   "/session-displaced",
   "/api/auth",
+  "/checkout",
+  "/api/checkout",
+  "/api/webhooks",
 ];
 
 function isPublic(pathname: string): boolean {
