@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { PaymentProvider } from "@/lib/firebase/repositories/purchases.repository";
 
@@ -8,10 +9,14 @@ export default function CheckoutForm() {
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>("mercadopago");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState(false);
+  const [activationPending, setActivationPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setEmailExists(false);
+    setActivationPending(false);
 
     if (!email) {
       setError("Por favor ingresá tu email.");
@@ -29,7 +34,13 @@ export default function CheckoutForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Error al iniciar el pago.");
+        if (data.code === "email_exists") {
+          setEmailExists(true);
+        } else if (data.code === "activation_pending") {
+          setActivationPending(true);
+        } else {
+          setError(data.error ?? "Error al iniciar el pago.");
+        }
         return;
       }
 
@@ -157,7 +168,33 @@ export default function CheckoutForm() {
         </label>
       </div>
 
-      {/* Error */}
+      {/* Error: pago pendiente de activación */}
+      {activationPending && (
+        <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-navy">
+          <p className="font-semibold mb-1">Ya tenés un pago registrado.</p>
+          <p className="text-slate-600">
+            Revisá tu bandeja de entrada (y la carpeta de spam) por el email de activación.
+          </p>
+        </div>
+      )}
+
+      {/* Error: email ya registrado */}
+      {emailExists && (
+        <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
+          <p className="font-semibold text-amber-900 mb-1">Este email ya tiene una cuenta.</p>
+          <p className="text-amber-800 mb-3">
+            Ya estás registrado. Iniciá sesión para acceder al programa.
+          </p>
+          <Link
+            href={`/login?email=${encodeURIComponent(email)}`}
+            className="inline-block bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-full hover:bg-amber-600 transition-colors"
+          >
+            Iniciá sesión
+          </Link>
+        </div>
+      )}
+
+      {/* Error genérico */}
       {error && (
         <p className="mb-4 text-sm text-red-600 text-center font-medium">{error}</p>
       )}

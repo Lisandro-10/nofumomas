@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminAuth, adminDb } from "@/lib/firebase/admin";
 
 const PRODUCT = {
   name: "Programa No Fumo Mas",
@@ -39,6 +39,30 @@ export async function POST(req: NextRequest) {
     }
 
     const origin = getOrigin(req);
+
+    // ── Bloquear emails ya registrados ───────────────────────────────────────
+    try {
+      await adminAuth.getUserByEmail(email);
+      return NextResponse.json(
+        { error: "El email ya está registrado. Por favor, iniciá sesión.", code: "email_exists" },
+        { status: 409 }
+      );
+    } catch (err: unknown) {
+      // auth/user-not-found es la ruta feliz — continuar
+      if ((err as { code?: string }).code !== "auth/user-not-found") {
+        console.error("[checkout] Firebase Auth error", err);
+        return NextResponse.json({ error: "Error al verificar el email." }, { status: 500 });
+      }
+    }
+
+    // ── Bloquear pagos ya realizados pero no activados ────────────────────────
+    const paidPurchase = await purchasesRepository.findPaidByEmail(email);
+    if (paidPurchase) {
+      return NextResponse.json(
+        { error: "Ya tenés un pago pendiente de activación. Revisá tu email.", code: "activation_pending" },
+        { status: 409 }
+      );
+    }
 
     // ── Stripe ───────────────────────────────────────────────────────────────
     if (paymentProvider === "stripe") {

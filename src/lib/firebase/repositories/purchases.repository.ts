@@ -75,4 +75,16 @@ export const purchasesRepository = {
     const doc = snap.docs[0];
     return { id: doc.id, ...doc.data() } as Purchase;
   },
+
+  async findPaidByEmail(email: string): Promise<Purchase | null> {
+    const snap = await adminDb
+      .collection(COL)
+      .where("email", "==", email)
+      .where("status", "==", "paid")
+      .limit(1)
+      .get();
+    if (snap.empty) return null;
+    const doc = snap.docs[0];
+    return { id: doc.id, ...doc.data() } as Purchase;
+  },
 };
