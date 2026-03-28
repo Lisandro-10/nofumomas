@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth.context";
 import FlowShell from "@/components/flow/FlowShell";
+import { GoogleSignInButton } from "./_components/GoogleSignInButton";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -85,6 +86,14 @@ export default function LoginPage() {
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        <div className="flex items-center gap-3">
+          <hr className="flex-1 border-navy/20" />
+          <span className="text-xs text-navy/40 font-medium uppercase tracking-wider">o</span>
+          <hr className="flex-1 border-navy/20" />
+        </div>
+
+        <GoogleSignInButton />
       </div>
     </FlowShell>
   );

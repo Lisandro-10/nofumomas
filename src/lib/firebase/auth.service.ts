@@ -3,6 +3,9 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  getAdditionalUserInfo,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { userRepository } from "@/lib/firebase/repositories/users.repository";
@@ -40,6 +43,25 @@ export async function signUp(
     createdAt: new Date(),
   });
   const idToken = await credential.user.getIdToken();
+  await postToAuthApi("/api/auth/login", { idToken });
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  const provider = new GoogleAuthProvider();
+  const credential = await signInWithPopup(auth, provider);
+  const { user } = credential;
+
+  const info = getAdditionalUserInfo(credential);
+  if (info?.isNewUser) {
+    await userRepository.upsertFromAuth(user.uid, {
+      email: user.email ?? "",
+      displayName: user.displayName ?? "",
+      hasSeenWelcome: false,
+      createdAt: new Date(),
+    });
+  }
+
+  const idToken = await user.getIdToken();
   await postToAuthApi("/api/auth/login", { idToken });
 }
 

@@ -1,3 +1,6 @@
+# visual studio code
+.vscode/
+
 # dependencies
 /node_modules
 
@@ -21,3 +24,9 @@ npm-debug.log*
 
 # dev log
 DEV_LOG.md
+
+# claude
+CLAUDE.md
+
+# docs
+/docs/
