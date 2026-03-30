@@ -68,7 +68,7 @@ describe("POST /api/webhooks/stripe — signature verification", () => {
 
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe("Invalid signature");
+    expect(body.title).toBe("Invalid signature");
   });
 });
 

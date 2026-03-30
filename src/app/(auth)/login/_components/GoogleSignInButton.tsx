@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/firebase/auth.context";
+import { getFirebaseAuthMessage } from "@/lib/errors";
 import { useRouter } from "next/navigation";
 
 function GoogleIcon() {
@@ -41,7 +42,7 @@ export function GoogleSignInButton() {
       router.push("/dashboard");
     } catch (err: unknown) {
       if ((err as { code?: string }).code === "auth/popup-closed-by-user") return;
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión con Google");
+      setError(getFirebaseAuthMessage(err));
     } finally {
       setLoading(false);
     }

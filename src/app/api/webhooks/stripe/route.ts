@@ -3,8 +3,10 @@ import Stripe from "stripe";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
 import { sendActivationEmail } from "@/lib/email/brevo.service";
 import { signActivationToken } from "@/lib/email/activation-token";
+import { AppError } from "@/lib/errors";
+import { withErrorHandler } from "@/lib/errors/withErrorHandler";
 
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const sig = req.headers.get("stripe-signature");
   const rawBody = await req.text();
@@ -18,7 +20,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     console.error("[webhook/stripe] firma inválida", err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    throw new AppError("Invalid signature", 400);
   }
 
   if (event.type === "checkout.session.completed") {
@@ -47,3 +49,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ received: true });
 }
+
+export const POST = withErrorHandler(handler);

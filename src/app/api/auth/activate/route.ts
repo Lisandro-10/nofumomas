@@ -3,6 +3,7 @@ import { decodeJwt } from "jose";
 import { verifyActivationToken } from "@/lib/email/activation-token";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { withErrorHandler } from "@/lib/errors/withErrorHandler";
 
 function redirect(req: NextRequest, params: Record<string, string>) {
   const url = new URL("/", req.url);
@@ -10,7 +11,7 @@ function redirect(req: NextRequest, params: Record<string, string>) {
   return NextResponse.redirect(url);
 }
 
-export async function GET(req: NextRequest) {
+async function handler(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
 
   if (!token) {
@@ -104,3 +105,5 @@ export async function GET(req: NextRequest) {
   dest.searchParams.set("mode", "activation");
   return NextResponse.redirect(dest.toString());
 }
+
+export const GET = withErrorHandler(handler);

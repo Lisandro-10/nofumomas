@@ -3,6 +3,8 @@ import Stripe from "stripe";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { ValidationError } from "@/lib/errors";
+import { withErrorHandler } from "@/lib/errors/withErrorHandler";
 
 const PRODUCT = {
   name: "Programa No Fumo Mas",
@@ -23,20 +25,16 @@ function getOrigin(req: NextRequest): string {
   return `${protocol}://${host}`;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const { email, paymentProvider } = await req.json();
+async function handler(req: NextRequest) {
+  const { email, paymentProvider } = await req.json();
 
-    if (!email || !paymentProvider) {
-      return NextResponse.json(
-        { error: "email y paymentProvider son requeridos" },
-        { status: 400 }
-      );
-    }
+  if (!email || !paymentProvider) {
+    throw new ValidationError("email y paymentProvider son requeridos");
+  }
 
-    if (!["stripe", "mercadopago"].includes(paymentProvider)) {
-      return NextResponse.json({ error: "paymentProvider inválido" }, { status: 400 });
-    }
+  if (!["stripe", "mercadopago"].includes(paymentProvider)) {
+    throw new ValidationError("paymentProvider inválido");
+  }
 
     const origin = getOrigin(req);
 
@@ -50,8 +48,7 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
       // auth/user-not-found es la ruta feliz — continuar
       if ((err as { code?: string }).code !== "auth/user-not-found") {
-        console.error("[checkout] Firebase Auth error", err);
-        return NextResponse.json({ error: "Error al verificar el email." }, { status: 500 });
+        throw err; // propagates to withErrorHandler → 500
       }
     }
 
@@ -169,8 +166,6 @@ export async function POST(req: NextRequest) {
     const redirectUrl = result.init_point;
 
     return NextResponse.json({ redirectUrl });
-  } catch (err) {
-    console.error("[checkout]", err);
-    return NextResponse.json({ error: "Error al iniciar el pago" }, { status: 500 });
-  }
 }
+
+export const POST = withErrorHandler(handler);

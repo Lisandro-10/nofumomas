@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { UnauthorizedError } from "@/lib/errors";
+import { withErrorHandler } from "@/lib/errors/withErrorHandler";
 
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   const uid = req.cookies.get("nfm_uid")?.value;
 
   if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    throw new UnauthorizedError();
   }
 
   await adminDb.collection("users").doc(uid).update({ hasSeenWelcome: true });
 
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withErrorHandler(handler);

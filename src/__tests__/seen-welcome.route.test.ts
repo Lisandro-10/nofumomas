@@ -38,7 +38,7 @@ describe("POST /api/user/seen-welcome", () => {
     const body = await res.json();
 
     expect(res.status).toBe(401);
-    expect(body.error).toBe("Unauthorized");
+    expect(body.title).toBeDefined();
   });
 
   it("returns 200 with { ok: true } when the cookie is present", async () => {

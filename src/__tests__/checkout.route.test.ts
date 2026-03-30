@@ -79,21 +79,21 @@ describe("POST /api/checkout — validation", () => {
     const res = await POST(makeRequest({ paymentProvider: "stripe" }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/email/i);
+    expect(body.title).toMatch(/email/i);
   });
 
   it("returns 400 when paymentProvider is missing", async () => {
     const res = await POST(makeRequest({ email: "a@b.com" }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/paymentProvider/i);
+    expect(body.title).toMatch(/paymentProvider/i);
   });
 
   it("returns 400 for an unknown paymentProvider value", async () => {
     const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "paypal" }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/paymentProvider/i);
+    expect(body.title).toMatch(/paymentProvider/i);
   });
 });
 
@@ -401,7 +401,7 @@ describe("POST /api/checkout — error handling", () => {
 
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBeDefined();
+    expect(body.title).toBeDefined();
   });
 
   it("returns 500 when dolarapi.com returns a non-ok response", async () => {
@@ -412,7 +412,7 @@ describe("POST /api/checkout — error handling", () => {
 
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBeDefined();
+    expect(body.title).toBeDefined();
   });
 
   it("returns 500 when dolarapi.com fetch throws a network error", async () => {
@@ -423,6 +423,6 @@ describe("POST /api/checkout — error handling", () => {
 
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBeDefined();
+    expect(body.title).toBeDefined();
   });
 });

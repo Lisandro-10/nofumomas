@@ -98,7 +98,7 @@ describe("POST /api/webhooks/mercadopago — signature verification", () => {
 
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe("Invalid signature");
+    expect(body.title).toBe("Invalid signature");
     expect(purchasesRepository.updateStatus).not.toHaveBeenCalled();
   });
 
@@ -335,6 +335,6 @@ describe("POST /api/webhooks/mercadopago — error handling", () => {
 
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBeDefined();
+    expect(body.title).toBeDefined();
   });
 });

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth.context";
+import { getFirebaseAuthMessage } from "@/lib/errors";
 import FlowShell from "@/components/flow/FlowShell";
 import { GoogleSignInButton } from "./_components/GoogleSignInButton";
 
@@ -23,7 +24,7 @@ export default function LoginPage() {
       console.log("Login exitoso");
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+      setError(getFirebaseAuthMessage(err));
     } finally {
       setLoading(false);
     }
