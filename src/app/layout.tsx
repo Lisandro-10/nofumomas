@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "No Fumo Mas",
+  title: "No Fumo Más",
   description: "Tu camino hacia una vida sin humo.",
 };
 

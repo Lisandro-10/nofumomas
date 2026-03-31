@@ -2,9 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { PaymentProvider } from "@/lib/firebase/repositories/purchases.repository";
+import type { PaymentProvider, Plan } from "@/lib/firebase/repositories/purchases.repository";
 
-export default function CheckoutForm() {
+const PLAN_PRICE: Record<Plan, string> = {
+  standard: "USD 120",
+  live: "USD 450",
+};
+
+export default function CheckoutForm({ plan }: { plan: Plan }) {
   const [email, setEmail] = useState("");
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>("mercadopago");
   const [loading, setLoading] = useState(false);
@@ -28,7 +33,7 @@ export default function CheckoutForm() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, paymentProvider }),
+        body: JSON.stringify({ email, paymentProvider, plan }),
       });
 
       const data = await res.json();
@@ -205,7 +210,7 @@ export default function CheckoutForm() {
         disabled={loading}
         className="w-full bg-orange hover:bg-[#e66a15] disabled:opacity-60 text-white font-extrabold text-lg py-5 rounded-pill shadow-lg shadow-orange/30 transition-all active:scale-[0.98]"
       >
-        {loading ? "Procesando…" : "PAGAR USD 120"}
+        {loading ? "Procesando…" : `PAGAR ${PLAN_PRICE[plan]}`}
       </button>
 
       <p className="mt-4 text-center text-[10px] md:text-xs text-slate-400 leading-relaxed px-4">

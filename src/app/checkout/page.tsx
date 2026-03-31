@@ -3,12 +3,43 @@ import Image from "next/image";
 import CheckoutForm from "./_components/CheckoutForm";
 import FlowHeader from "@/components/flow/FlowHeader";
 import FlowFooter from "@/components/flow/FlowFooter";
+import type { Plan } from "@/lib/firebase/repositories/purchases.repository";
 
-export const metadata: Metadata = {
-  title: "Checkout - No Fumo Mas",
+const PLAN_DETAILS: Record<Plan, {
+  label: string;
+  price: string;
+  originalPrice?: string;
+  features: string[];
+}> = {
+  standard: {
+    label: "Standard",
+    price: "USD 120",
+    originalPrice: "USD 240",
+    features: ["Curso pre-grabado completo", "Audio de hipnosis descargable", "Guía digital de apoyo"],
+  },
+  live: {
+    label: "Intensivo Live",
+    price: "USD 450",
+    features: [
+      "Sesión en vivo personalizada",
+      "Interacción directa con expertos",
+      "Kit de bienvenida físico",
+      "Garantía de repetición",
+    ],
+  },
 };
 
-export default function CheckoutPage() {
+type Props = { searchParams: { plan?: string } };
+
+export function generateMetadata({ searchParams }: Props): Metadata {
+  const plan: Plan = searchParams.plan === "live" ? "live" : "standard";
+  return { title: `Checkout ${PLAN_DETAILS[plan].label} - No Fumo Más` };
+}
+
+export default function CheckoutPage({ searchParams }: Props) {
+  const plan: Plan = searchParams.plan === "live" ? "live" : "standard";
+  const details = PLAN_DETAILS[plan];
+
   return (
     <div className="min-h-screen bg-canvas font-sans flex flex-col">
       <FlowHeader showSecureBadge />
@@ -30,7 +61,7 @@ export default function CheckoutPage() {
               </div>
 
               <h2 className="text-navy text-2xl md:text-3xl font-extrabold leading-tight mb-2">
-                Programa No Fumo Mas
+                Programa No Fumo Más — {details.label}
               </h2>
               <p className="text-slate-500 text-sm md:text-base leading-relaxed mb-6">
                 Acceso completo al curso online · Método Desoille · Hipnosis clínica
@@ -38,22 +69,22 @@ export default function CheckoutPage() {
 
               {/* Price */}
               <div className="flex items-baseline gap-2 mb-8">
-                <span className="text-navy text-4xl font-extrabold">USD 120</span>
-                <span className="text-slate-400 text-sm line-through">USD 240</span>
+                <span className="text-navy text-4xl font-extrabold">{details.price}</span>
+                {details.originalPrice && (
+                  <span className="text-slate-400 text-sm line-through">{details.originalPrice}</span>
+                )}
               </div>
 
               {/* Benefits */}
               <ul className="space-y-4 mb-8">
-                {["Acceso inmediato", "Contenido completo", "Sin suscripción"].map(
-                  (item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-green-vitality font-bold">
-                        check_circle
-                      </span>
-                      <p className="font-medium text-slate-700">{item}</p>
-                    </li>
-                  )
-                )}
+                {details.features.map((item) => (
+                  <li key={item} className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-green-vitality font-bold">
+                      check_circle
+                    </span>
+                    <p className="font-medium text-slate-700">{item}</p>
+                  </li>
+                ))}
               </ul>
 
               <hr className="border-slate-100 mb-6" />
@@ -81,7 +112,7 @@ export default function CheckoutPage() {
           {/* RIGHT — Payment form */}
           <div className="lg:col-span-7 order-2">
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-6 md:p-10">
-              <CheckoutForm />
+              <CheckoutForm plan={plan} />
             </div>
           </div>
 

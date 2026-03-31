@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/checkout/route";
 import { purchasesRepository } from "@/lib/firebase/repositories/purchases.repository";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminAuth, adminDb } from "@/lib/firebase/admin";
 
 // ── Stripe mock ────────────────────────────────────────────────────────────────
 jest.mock("stripe", () => {
@@ -26,17 +26,29 @@ jest.mock("mercadopago", () => ({
 jest.mock("@/lib/firebase/repositories/purchases.repository", () => ({
   purchasesRepository: {
     create: jest.fn(),
+    findPaidByEmail: jest.fn(),
   },
 }));
 
-// ── adminDb mock ───────────────────────────────────────────────────────────────
+// ── adminAuth + adminDb mock ───────────────────────────────────────────────────
 const mockDocUpdate = jest.fn();
 
 jest.mock("@/lib/firebase/admin", () => ({
+  adminAuth: {
+    getUserByEmail: jest.fn(),
+  },
   adminDb: {
     collection: jest.fn(),
   },
 }));
+
+/** Simulates the happy-path auth check: user not found → proceed to payment */
+function mockAuthUserNotFound() {
+  const err = Object.assign(new Error("auth/user-not-found"), {
+    code: "auth/user-not-found",
+  });
+  jest.mocked(adminAuth.getUserByEmail).mockRejectedValue(err);
+}
 
 import Stripe from "stripe";
 import { Preference } from "mercadopago";
@@ -101,6 +113,8 @@ describe("POST /api/checkout — Stripe", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
+    mockAuthUserNotFound();
+    jest.mocked(purchasesRepository.findPaidByEmail).mockResolvedValue(null);
     setupAdminDbChain();
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-1");
     (Stripe as unknown as jest.Mock).mockImplementation(() => ({
@@ -198,6 +212,8 @@ describe("POST /api/checkout — MercadoPago", () => {
     jest.clearAllMocks();
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
     delete process.env.MERCADOPAGO_NOTIFICATION_URL;
+    mockAuthUserNotFound();
+    jest.mocked(purchasesRepository.findPaidByEmail).mockResolvedValue(null);
     setupAdminDbChain();
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-mp");
   });
@@ -383,7 +399,11 @@ describe("POST /api/checkout — MercadoPago", () => {
 });
 
 describe("POST /api/checkout — error handling", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAuthUserNotFound();
+    jest.mocked(purchasesRepository.findPaidByEmail).mockResolvedValue(null);
+  });
 
   it("returns 500 when Stripe throws an unexpected error", async () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_key";

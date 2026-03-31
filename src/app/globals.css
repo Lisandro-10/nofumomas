@@ -10,6 +10,7 @@
 @layer base {
   html {
     font-family: var(--font-montserrat), sans-serif;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -47,4 +48,13 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Hide scrollbar cross-browser — used by TestimonialsCarousel */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

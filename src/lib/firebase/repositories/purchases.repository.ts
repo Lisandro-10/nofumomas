@@ -3,8 +3,10 @@ import { FieldValue } from "firebase-admin/firestore";
 
 export type PaymentProvider = "stripe" | "mercadopago";
 export type PurchaseStatus = "pending" | "paid" | "failed" | "cancelled" | "activated" | "refunded" | "charged_back";
+export type Plan = "standard" | "live";
 
 export interface Purchase {
+  plan?: Plan;
   id?: string;
   email: string;
   provider: PaymentProvider;
