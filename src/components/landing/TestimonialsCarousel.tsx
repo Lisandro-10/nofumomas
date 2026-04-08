@@ -85,7 +85,7 @@ export default function TestimonialsCarousel() {
           {TESTIMONIALS.map(({ quote, author, role }) => (
             <div
               key={author}
-              className="min-w-[320px] md:min-w-[400px] bg-white p-8 rounded-card border border-slate-100 shadow-card snap-start flex flex-col justify-between shrink-0"
+              className="max-w-[320px] md:max-w-[450px] bg-white p-8 rounded-card border border-slate-100 shadow-card snap-start flex flex-col justify-between shrink-0"
             >
               <div>
                 <span
