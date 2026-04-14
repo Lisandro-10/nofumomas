@@ -3,22 +3,22 @@ import Image from "next/image";
 const FIGURES = [
   {
     name: "Allen Carr",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDoRydu1YE3-2Elehd5qxE6td7JKYJujd9_LzBP5hLA-Gu9nTy76sPaO9J2ylLYbsz3Haeashl7iOdMqzRcAzeU3AfFL7DD_7eOCW638lGYxMEo1VNILIT159oNt1dAtBit-Xgh1-7wQ7iQA9rgMTbdPUl7USEeZp6muJJozaIhsUtNELvH4Qo5ExJDIJ9UwXenA2X2U3loyVj49_Mg8NI8tge-reaQRM1C5ikmYVMQYPbrGRi5Vt0wIYfmFmYcyAMUCf9petXRxKQ",
+    img: "/AllenCarr.webp",
     desc: "Escritor británico de libros de autoayuda, fumador empedernido y creador del método «Es fácil dejar de fumar si sabes cómo».",
   },
   {
     name: "Albert Ellis",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCTG8529qFXn4K424avzdWszquIVJFaqjJW341DZSywKRDiGdtzd4ZoNKzffUnxOMkGAnJ-6jHys2_VexyzQsnyvObu4ew4ud0ot4fmCNyLOeg6IWQ6bvMAejAZesVBbD9jPEGjfTH3awdW_FPAFPsL4u8UGp2G2rdmvhr2WfhBqfwdUGQg4E-dDqJiIH1B5zRKenj6rG21Y48de7x2QH6aJDzC-tH1GoOyNt63ccdgMRmbQQ8FGtjBuXCl7RTSc_Fh2o8woLknv5M",
+    img: "/AlbertEllis.webp",
     desc: "El reconocido psicólogo estadounidense aportó su terapia de reestructuración cognitiva al método.",
   },
   {
     name: "Robert Desoille",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAlkF9TfuQ-oRFkDgK-Pzq5AO_vH62np2u6MdTVZJrvIL-8lAfjAeSXpV6b6PrXCXbAO08kBBIkW3q3lrr3A-sI6ZMBYbVkM814VeIwjGeTEVIMYUrLEWxFGExyCdhmnVRelyshzzP8jpcTXb0FU8MzjqLQ5zWG12EuZc2fyru5ijfT5bxXBeXVe-YZbmH5_stsTN5ErBqawzZpqcyIaGbgtpLIs0pRddeWGTf0M8-nYM88Q6t01pJpUTDRC5GBbLFtHtXlK4cZDi8",
+    img: "/RobertDesoille.webp",
     desc: "Terapeuta francés, fundador de la escuela de hipnosis de ensueños dirigidos. A través de esta técnica usamos lo imaginario para acceder al inconsciente.",
   },
   {
     name: "Reestructuración Cognitiva Emocional",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDa_sa2ZkIGI-G-mb0fC0rSCa4O4UG1sxXNC26tbKTl3b9PzSfY_eMBiHQMFdeLFmSveD24g07QiMAqdQ51etbRbaLWU2cEnfEOg85-Rnwu4qaNduvvdFN1MPuvPtYMMQ2vBv4KzcFKP1FegYKtKm3syLdLZ41BHruZCULa8iArIeNsnbHYdLx1S0IJaw",
+    img: "/reestructuracion_cognitiva_emocional.svg",
     desc: "Hará que dejes de desear el cigarrillo, impedirá que engordes y te dará una visión completamente diferente del tabaco.",
   },
 ];
@@ -42,7 +42,7 @@ export default function ScienceBaseGrid() {
                   alt={name}
                   width={300}
                   height={300}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               </div>
               <p className="font-bold text-navy text-center text-sm">{name}</p>

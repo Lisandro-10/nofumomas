@@ -5,7 +5,7 @@ const EXPERTS = [
   {
     name: "Lic. Gonzalo Descotte",
     title: "Licenciado en Psicología",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBKtebg8Mlj4yr6cs3p_N2yfX7DIOk5qm9XWTTYvOfKll8PpgTvu1_09yCqqEj2bk_pHMDfmCMp3rWpkW1F-uV-64QNcU3QWNRdVmvR_0qa7cyHqRvJKslHQ3TYlTkdFuePzDcQozrT51SuFLu5qTQONEDtC4ZptV49ZylFzPCqpkq0PLVSQ296He4aDy0bmZZmw0_N633AAtBTRyQW1F9avJ3-8v-RHa0k_ABWUsggFcay6u7aR7lTnHkjNduirlnyllEnudS6vg",
+    img: "/GonzaloDescotte.webp",
     credentials: [
       "Licenciado en Psicología, Universidad de Mendoza, Argentina.",
       "Director Área Psicología «Clínica Psiquiátrica Los Tilos», Argentina.",
@@ -17,7 +17,7 @@ const EXPERTS = [
   {
     name: "Dr. Germán Maravilla",
     title: "Médico Psiquiatra",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAZcuFG8rYBL3Ge2q_Ka3tzCNSa4O4UG1sxXNC26tbKTl3b9PzSfY_eMBiHQMFdeLFmSveD24g07QiMAqdQ51etbRbaLWU2cEnfEOg85-Rnwu4qaNduvvdFN1MPuvPtYMMQ2vBv4KzcFKP1FegYKtKm3syLdLZ41BHruZCULa8iArIeNsnbHYdLx1S0IJaw",
+    img: "/GermanMaravilla.webp",
     credentials: [
       "Médico por la Universidad Nacional de Cuyo, Argentina.",
       "Profesor de Posgrado en Universidad Finis Terrae, Chile.",
@@ -58,7 +58,7 @@ export default function ExpertsSection() {
                   alt={name}
                   width={144}
                   height={144}
-                  className="rounded-full object-cover border-4 border-canvas"
+                  className="w-36 h-36 rounded-full object-cover border-4 border-canvas"
                 />
               </div>
               <div className="text-center mb-6">
