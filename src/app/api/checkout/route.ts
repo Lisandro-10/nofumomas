@@ -32,8 +32,21 @@ function getOrigin(req: NextRequest): string {
   return `${protocol}://${host}`;
 }
 
+async function verifyTurnstile(token: string): Promise<void> {
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      secret: process.env.TURNSTILE_SECRET_KEY!,
+      response: token,
+    }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new ValidationError("Turnstile verification failed");
+}
+
 async function handler(req: NextRequest) {
-  const { email, paymentProvider, plan = "standard" } = await req.json();
+  const { email, paymentProvider, plan = "standard", turnstileToken } = await req.json();
 
   if (!email || !paymentProvider) {
     throw new ValidationError("email y paymentProvider son requeridos");
@@ -47,8 +60,14 @@ async function handler(req: NextRequest) {
     throw new ValidationError("plan inválido");
   }
 
+  if (!turnstileToken) {
+    throw new ValidationError("turnstileToken es requerido");
+  }
+
   const product = PRODUCTS[plan as Plan];
   const origin = getOrigin(req);
+
+  await verifyTurnstile(turnstileToken);
 
   // ── Bloquear emails ya registrados ───────────────────────────────────────
   try {

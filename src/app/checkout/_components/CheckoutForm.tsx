@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import type { PaymentProvider, Plan } from "@/lib/firebase/repositories/purchases.repository";
 
 const PLAN_PRICE: Record<Plan, string> = {
@@ -16,6 +17,7 @@ export default function CheckoutForm({ plan }: { plan: Plan }) {
   const [error, setError] = useState<string | null>(null);
   const [emailExists, setEmailExists] = useState(false);
   const [activationPending, setActivationPending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +35,7 @@ export default function CheckoutForm({ plan }: { plan: Plan }) {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, paymentProvider, plan }),
+        body: JSON.stringify({ email, paymentProvider, plan, turnstileToken }),
       });
 
       const data = await res.json();
@@ -204,10 +206,20 @@ export default function CheckoutForm({ plan }: { plan: Plan }) {
         <p className="mb-4 text-sm text-red-600 text-center font-medium">{error}</p>
       )}
 
+      {/* Turnstile anti-bot widget */}
+      <div className="mb-4 flex justify-center">
+        <Turnstile
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+          onSuccess={setTurnstileToken}
+          onExpire={() => setTurnstileToken(null)}
+          onError={() => setTurnstileToken(null)}
+        />
+      </div>
+
       {/* CTA */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={!turnstileToken || loading}
         className="w-full bg-orange hover:bg-[#e66a15] disabled:opacity-60 text-white font-extrabold text-lg py-5 rounded-pill shadow-lg shadow-orange/30 transition-all active:scale-[0.98]"
       >
         {loading ? "Procesando…" : `PAGAR ${PLAN_PRICE[plan]}`}

@@ -14,7 +14,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  return PUBLIC_PATHS.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)));
 }
 
 export function middleware(req: NextRequest) {

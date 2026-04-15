@@ -53,14 +53,30 @@ function mockAuthUserNotFound() {
 import Stripe from "stripe";
 import { Preference } from "mercadopago";
 
-// ── Global fetch mock (dolarapi.com) ───────────────────────────────────────────
+// ── Global fetch mock (Turnstile + dolarapi.com) ──────────────────────────────
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+/** Turnstile always passes; no dolarapi mock (use for Stripe tests). */
+function mockTurnstileSuccess() {
+  mockFetch.mockImplementation((url: string) => {
+    if (url.includes("challenges.cloudflare.com")) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+    }
+    return Promise.reject(new Error(`Unexpected fetch to: ${url}`));
+  });
+}
+
+/** Turnstile passes + dolarapi returns the given rate (use for MercadoPago tests). */
 function mockBlueRate(rate: number) {
-  mockFetch.mockResolvedValueOnce({
-    ok: true,
-    json: () => Promise.resolve({ venta: rate }),
+  mockFetch.mockImplementation((url: string) => {
+    if (url.includes("challenges.cloudflare.com")) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+    }
+    if (url.includes("dolarapi.com")) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ venta: rate }) });
+    }
+    return Promise.reject(new Error(`Unexpected fetch to: ${url}`));
   });
 }
 
@@ -71,7 +87,7 @@ function makeRequest(body: object) {
   return new NextRequest("http://localhost:3000/api/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json", host: "localhost:3000" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ turnstileToken: "valid-token", ...body }),
   });
 }
 
@@ -114,6 +130,7 @@ describe("POST /api/checkout — Stripe", () => {
     jest.clearAllMocks();
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
     mockAuthUserNotFound();
+    mockTurnstileSuccess();
     jest.mocked(purchasesRepository.findPaidByEmail).mockResolvedValue(null);
     setupAdminDbChain();
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-1");
@@ -407,6 +424,7 @@ describe("POST /api/checkout — error handling", () => {
 
   it("returns 500 when Stripe throws an unexpected error", async () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
+    mockTurnstileSuccess();
     jest.mocked(purchasesRepository.create).mockResolvedValue("purchase-id-1");
     setupAdminDbChain();
     (Stripe as unknown as jest.Mock).mockImplementation(() => ({
@@ -426,7 +444,12 @@ describe("POST /api/checkout — error handling", () => {
 
   it("returns 500 when dolarapi.com returns a non-ok response", async () => {
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("challenges.cloudflare.com")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+      }
+      return Promise.resolve({ ok: false, status: 503 });
+    });
 
     const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "mercadopago" }));
 
@@ -437,10 +460,50 @@ describe("POST /api/checkout — error handling", () => {
 
   it("returns 500 when dolarapi.com fetch throws a network error", async () => {
     process.env.MERCADOPAGO_ACCESS_TOKEN = "TEST-token";
-    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("challenges.cloudflare.com")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+      }
+      return Promise.reject(new Error("Network error"));
+    });
 
     const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "mercadopago" }));
 
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.title).toBeDefined();
+  });
+});
+
+describe("POST /api/checkout — Turnstile validation", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("returns 400 when turnstileToken is missing", async () => {
+    const res = await POST(
+      new NextRequest("http://localhost:3000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", host: "localhost:3000" },
+        body: JSON.stringify({ email: "a@b.com", paymentProvider: "stripe" }),
+      })
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.title).toMatch(/turnstile/i);
+  });
+
+  it("returns 400 when Cloudflare returns success: false", async () => {
+    mockFetch.mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ success: false }) })
+    );
+    const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "stripe" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.title).toMatch(/turnstile/i);
+  });
+
+  it("returns 500 when Cloudflare fetch throws a network error", async () => {
+    mockFetch.mockRejectedValue(new Error("Network error"));
+    const res = await POST(makeRequest({ email: "a@b.com", paymentProvider: "stripe" }));
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.title).toBeDefined();
