@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function HeroSplit() {
   return (
-    <header className="relative pt-32 pb-20 bg-canvas overflow-hidden">
+    <header id="hero" className="relative pt-32 pb-20 bg-canvas overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
         <div className="relative z-10">
           <span className="text-orange font-bold tracking-[0.2em] uppercase text-sm block mb-4">

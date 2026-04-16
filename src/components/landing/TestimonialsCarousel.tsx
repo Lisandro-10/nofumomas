@@ -69,7 +69,7 @@ export default function TestimonialsCarousel() {
   }
 
   return (
-    <section id="testimonios" className="py-24 bg-canvas overflow-hidden">
+    <section id="testimonios" className="py-24 bg-canvas overflow-hidden scroll-mt-20">
       <div className="max-w-7xl mx-auto px-6 mb-16 text-center">
         <h2 className="text-4xl md:text-5xl font-extrabold text-navy mb-4">
           Lo que dicen nuestros graduados

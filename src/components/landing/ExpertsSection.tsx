@@ -29,7 +29,7 @@ const EXPERTS = [
 
 export default function ExpertsSection() {
   return (
-    <section id="nosotros" className="py-24 bg-canvas">
+    <section id="nosotros" className="py-24 bg-canvas scroll-mt-20">
       <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row gap-16 items-center">
         <div className="lg:w-1/3">
           <h2 className="text-4xl font-extrabold text-navy mb-6">Expertos a cargo</h2>
