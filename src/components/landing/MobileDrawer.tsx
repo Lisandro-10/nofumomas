@@ -124,6 +124,14 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
         {/* Footer actions */}
         <div className="px-6 pb-8 flex flex-col gap-3 border-t border-navy/10 pt-6">
+          <Link
+            href="/login"
+            onClick={onClose}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-navy font-bold text-sm hover:bg-navy/5 transition-colors"
+          >
+            <span className="material-symbols-outlined">login</span>
+            Ingresar
+          </Link>
           <a
             href={`https://wa.me/${waNumber}`}
             target="_blank"

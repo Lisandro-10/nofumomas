@@ -35,6 +35,13 @@ export default function NavBar() {
           <div className="hidden md:flex items-center gap-6">
             <span className="hidden lg:block text-orange font-bold text-sm">+54 261 749-7523</span>
             <Link
+              href="/login"
+              className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-navy/5 transition-colors"
+              aria-label="Ingresar"
+            >
+              <span className="material-symbols-outlined text-navy">login</span>
+            </Link>
+            <Link
               href="/checkout"
               className="rounded-pill bg-orange text-white px-6 py-2 text-sm font-bold uppercase tracking-action hover:opacity-90 transition-opacity active:scale-95"
             >
